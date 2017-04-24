@@ -113,12 +113,11 @@ class validation_metrics(object):
         precision = sklearn.metrics.precision_score(self.true_results, classified_predictions, labels=None, pos_label=1, average=None, sample_weight=None)
         roc = roc_auc_score(self.true_results, self.predicted_results)
 
-        print "AUROC: " + str(roc)
+        print "\nAUROC: " + str(roc)
         print "Recall: " + str(recall)
         print "Precision " + str(precision)
         print "f1 score: " + str(f1_score)
         print "Accuracy: " + str(p_score)
-        print "\n"
         print "Confusion matrix seen below:"
         print cmatrix
 
@@ -135,9 +134,6 @@ class visualize_data(object):
         Takes a title and enrichment values as parameters
         outputs aesthetic graph
         """
-        data = len(enrichment)
-        print "Amount of points: " + str(data)
-        #enrichment = np.ravel(enrichment)
         plt.figure(figsize=(12, 9))
         ax = plt.subplot(111)
         ax.spines["top"].set_visible(False)
@@ -169,7 +165,7 @@ class visualize_data(object):
                 bound = bound + 1
             else:
                 ubound = ubound + 1
-        print "A total of " + str(iterations) + " Interactions were counted"
+
         if iterations != len(self.target):
             print "iterations did not match length of target data"
             exit()
@@ -221,9 +217,9 @@ def clean_data(data):
     np.any(np.isnan(data), axis=0)
     print "Data Clean up succesful"
 
-def optimize(training_data, training_results):
+def optimize(model, training_data, training_results):
     """This function optimizes the machine learning classifier, returning the parameters that give the best accuracy
-    Takes the training data and training targets as arguments
+    Takes the model, training data and training targets as arguments
     Outputs the best Parameters
     """
 
@@ -239,11 +235,26 @@ def optimize(training_data, training_results):
         'random_state' : [46, 0]
     }
     #5 fold validation
-    CV_est = GridSearchCV(estimator=est, param_grid=param_grid, cv= 5)
+    CV_est = GridSearchCV(estimator=model, param_grid=param_grid, cv= 5)
     CV_est.fit(training_data, training_results)
     print CV_est.best_params_
-    print "Optimization Complete"
 
+def recursive_feature_elimination(model, training_data, training_results):
+    """Runs RFECV with 5 folds
+    Takes model, training features, and targets as command line arguments
+    Outputs optimum features
+    """
+    selector = RFECV(estimator=model, step=1, cv=5, scoring='roc_auc', verbose=1)
+    selector = selector.fit(training_data, training_results)
+    print selector.support_
+    print "\n"
+    print selector.ranking_
+    print "\n"
+    print "Optimal number of features: "
+
+    print selector.n_features_
+    print "\n"
+    print selector.grid_scores_
 def get_dummies(dataframe, category):
     """This function converts categorical variables into dummy variables
     Takes pandas dataframe and the catefory name as arguments
@@ -289,13 +300,11 @@ def set_threshold_roc_curve(y_true, y_score, pos_label=None, sample_weight=None,
     """
     fps, tps, thresholds = _binary_clf_curve(
         y_true, y_score, pos_label=pos_label, sample_weight=sample_weight)
-
     if tps.size == 0 or fps[0] != 0:
         # Add an extra threshold position if necessary
         tps = np.r_[0, tps]
         fps = np.r_[0, fps]
         thresholds = np.r_[thresholds[0] + 1, thresholds]
-
     if fps[-1] <= 0:
         warnings.warn("No negative samples in y_true, "
                       "false positive value should be meaningless",
@@ -303,7 +312,6 @@ def set_threshold_roc_curve(y_true, y_score, pos_label=None, sample_weight=None,
         fpr = np.repeat(np.nan, fps.shape)
     else:
         fpr = fps / fps[-1]
-
     if tps[-1] <= 0:
         warnings.warn("No positive samples in y_true, "
                       "true positive value should be meaningless",
@@ -311,7 +319,6 @@ def set_threshold_roc_curve(y_true, y_score, pos_label=None, sample_weight=None,
         tpr = np.repeat(np.nan, tps.shape)
     else:
         tpr = tps / tps[-1]
-
     return fpr, tpr, thresholds
 
 def _binary_clf_curve(y_true, y_score, pos_label=None, sample_weight=None):
@@ -357,40 +364,40 @@ def _binary_clf_curve(y_true, y_score, pos_label=None, sample_weight=None):
     return fps, tps, y_score[threshold_idxs]
 
 def main(argv):
-    if len(argv) == 1:
-        data = pd.read_csv("train.csv")
-        target = pd.read_csv("class_result.csv")
-        enrichment = pd.read_csv("result.csv")
-    else:
+    #Fetch the data
+    try:
         script, training_csv, target_csv, enrichment_csv = argv
         data = pd.read_csv(training_csv)
         target = pd.read_csv(target_csv)
         enrichment = pd.read_csv(enrichment_csv)
-
-    headers = list(data)
+    except:
+        try:
+            data = pd.read_csv("train.csv")
+            target = pd.read_csv("class_result.csv")
+            enrichment = pd.read_csv("result.csv")
+        except:
+            usage()
+    #Dummify where necessary
     data = get_dummies(data, 'size')
     data = get_dummies(data, 'charge')
     data = get_dummies(data, 'salt')
     data = get_dummies(data, 'cysteine')
-
+    headers = list(data)
     for i in headers[11:]:
         data = get_dummies(data, i)
-
     #split data into training and testing set. Use testing set to validate model at the end
     training_data, test_data, training_results, test_results = sklearn.cross_validation.train_test_split(data, target, test_size=0.1, random_state = random_number())
     training_results= np.ravel(training_results)
+    #Ravel those vectors
     test_results = np.ravel(test_results)
     enrichment = np.ravel(enrichment)
     target = np.ravel(target)
-
-    vis = visualize_data(enrichment, target)
+    #Visualize the data
+    vis = visualize_data(enrichment)
     vis.visualize_by_particle()
-
-    print "\nData information:\n"
-    print "The number of experiments to train with:        " + str(len(training_data))
-    print "The number of experiments to test the model on: " + str(len(test_data))
-
-    print "Running Machine Learning algorithm...\n\n"
+    #Print Relevant information
+    print "Amount of Training data: " + str(len(training_data))
+    print "Amount of Testing Data: " + str(len(test_data))
 
     est = RandomForestClassifierWithCoef(#criterion='mse',             #mean squared error criterion
                                  n_estimators=1000,             #number of trees used by the algorithm
@@ -404,55 +411,24 @@ def main(argv):
                                  n_jobs=-1,                    #CPU Cores used (-1 uses all)
                                  random_state=random_number()  #Initialize random seed generator
                                  )
-    """
-    selector = RFECV(estimator=est, step=1, cv=5, scoring='roc_auc', verbose=1)
-    selector = selector.fit(training_data, training_results)
-    print selector.support_
-    print "\n"
-    print selector.ranking_
-    print "\n"
-    print "Optimal number of features: "
-
-    print selector.n_features_
-    print "\n"
-    print selector.grid_scores_
-    """
-
-
-
-
-
 
     est.fit(training_data, training_results)                  #fit model to training data
-    predicted_results_midcut = est.predict(test_data)         #predict results of test data
-    proba = est.predict_proba(test_data)[:,1]
-
-    #classify based off predicted probabilities
-    predicted_results = []
-    for i in proba:
-        if i >= 0.5:
-            temp = 1
-        else:
-            temp = 0
-        predicted_results.append(temp)
-
+    probability_prediction = est.predict_proba(test_data)[:,1]
     #export predicted and true results to excel,
     comp = {}
-    comp = {'Weight' : test_data['Weight'], 'pI' : test_data['Pi'], 'True' : test_results, 'Predicted' : predicted_results}
+    comp = {'Weight' : test_data['Weight'], 'pI' : test_data['Pi'], 'True' : test_results, 'Predicted' : classify(probability_prediction, 0.5)}
     cvs=pd.DataFrame(comp, columns = ['Weight', 'pI', 'True', 'Predicted'])
     cvs.to_csv("Predicted.csv")
-
-    #quantify importance of features, if feature is higher up tree, it is more important.
-    #all importances will sum up to one
+    #Grab Feature Importance, Send it to Excel
     features = est.feature_importances_
-    #send feature weight to excel
-    #excel = pd.DataFrame(features, list(set(training_data)))
-    #excel.to_csv("FeatureWeights.csv")
-
-    val = validation_metrics(test_results, proba)
+    excel = pd.DataFrame(features, list(set(training_data)))
+    excel.to_csv("FeatureWeights.csv")
+    #Run validation Metrics
+    val = validation_metrics(test_results, probability_prediction)
     val.roc_curve()
     val.youden_index()
     val.well_rounded_validation()
+
 def usage():
     help="""
         >This script takes two command line arguments:
