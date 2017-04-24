@@ -11,15 +11,12 @@ containing information about the proteins, particles, and solvent conditions.
 To make predictions from our database we use a random forest classification algorithm.
 We validate our classifications with several statistical methods including ROC curves.
 """
-import math
 import sklearn
+import math
 import numpy as np
 import pandas as pd
-from scipy import stats
 from sklearn.metrics import roc_auc_score, roc_curve, auc
 import matplotlib.pyplot as plt
-from sklearn.cross_validation import LeaveOneOut
-from sklearn import decomposition
 from sys import argv
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.decomposition import PCA
@@ -52,7 +49,7 @@ class validation_metrics(object):
         tpr = []
         fpt = []
         fpr, tpr, thresholds = set_threshold_roc_curve(self.true_results, self.predicted_results, pos_label=1, drop_intermediate=True)
-
+        print thresholds
         for i in range(0, len(thresholds)):
             YI=((tpr[i]+(1-fpr[i])-1))/(math.sqrt(2))
             youden_index_values.append(YI)
@@ -265,7 +262,7 @@ def get_dummies(dataframe, category):
     dataframe.drop(category, axis=1, inplace=True)
     return dataframe
 
-def classify(proba, cutoff):
+def classify(prob, cutoff):
     """This function classifies particles as bound or unbound
     Takes unclassified data the cutoff as arguments
     returns classified data in a list
@@ -282,7 +279,7 @@ def classify(proba, cutoff):
 
 def stable_cumsum(arr, rtol=1e-05, atol=1e-08):
     """
-    Taken From sci-kit learn documentation
+    Taken From sci-kit learn documentation to help set_threshold_roc_curve
     Altered to give a constant amount of thresholds for the roc curve
     """
     out = np.cumsum(arr, dtype=np.float64)
@@ -430,11 +427,12 @@ def main(argv):
     val.well_rounded_validation()
 
 def usage():
-    help="""
-        >This script takes two command line arguments:
-            ->the first is for the experiment features.
-            ->the second is for the experiment targets.
-        """
+    help=
+    """
+    >This script takes two command line arguments:
+        ->the first is for the experiment features.
+        ->the second is for the experiment targets.
+    """
     print help +"\n"
 
 if __name__ == '__main__':
