@@ -262,7 +262,7 @@ def get_dummies(dataframe, category):
     dataframe.drop(category, axis=1, inplace=True)
     return dataframe
 
-def classify(prob, cutoff):
+def classify(proba, cutoff):
     """This function classifies particles as bound or unbound
     Takes unclassified data the cutoff as arguments
     returns classified data in a list
@@ -379,9 +379,7 @@ def main(argv):
     data = get_dummies(data, 'charge')
     data = get_dummies(data, 'salt')
     data = get_dummies(data, 'cysteine')
-    headers = list(data)
-    for i in headers[11:]:
-        data = get_dummies(data, i)
+
     #split data into training and testing set. Use testing set to validate model at the end
     training_data, test_data, training_results, test_results = sklearn.cross_validation.train_test_split(data, target, test_size=0.1, random_state = random_number())
     training_results= np.ravel(training_results)
@@ -427,8 +425,7 @@ def main(argv):
     val.well_rounded_validation()
 
 def usage():
-    help=
-    """
+    help="""
     >This script takes two command line arguments:
         ->the first is for the experiment features.
         ->the second is for the experiment targets.
