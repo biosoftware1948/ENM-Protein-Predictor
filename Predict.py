@@ -22,6 +22,8 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.decomposition import PCA
 from sklearn.feature_selection import RFECV
 from sklearn.grid_search import GridSearchCV
+import sys
+import json
 
 class RandomForestClassifierWithCoef(RandomForestClassifier):
     """Adds feature weights for each returned variable"""
@@ -103,20 +105,16 @@ class validation_metrics(object):
         Prints the AUROC, Recall, Precision, F1-score, Accuracy, and confusion matrix from the model
         """
         classified_predictions = classify(self.predicted_results, 0.5)
-        f1_score =sklearn.metrics.f1_score(self.true_results, classified_predictions)
-        p_score = sklearn.metrics.accuracy_score(self.true_results, classified_predictions) #Accurary
-        cmatrix= sklearn.metrics.confusion_matrix(self.true_results, classified_predictions, labels=None)
-        recall = sklearn.metrics.recall_score(self.true_results, classified_predictions, labels=None, pos_label=1, average=None, sample_weight=None)
-        precision = sklearn.metrics.precision_score(self.true_results, classified_predictions, labels=None, pos_label=1, average=None, sample_weight=None)
-        roc = roc_auc_score(self.true_results, self.predicted_results)
+        conf_matrix = sklearn.metrics.confusion_matrix(self.true_results, classified_predictions, labels=None)
 
-        print "\nAUROC: " + str(roc)
-        print "Recall: " + str(recall)
-        print "Precision " + str(precision)
-        print "f1 score: " + str(f1_score)
-        print "Accuracy: " + str(p_score)
-        print "Confusion matrix seen below:"
-        print cmatrix
+        return {
+                "AUROC" : roc_auc_score(self.true_results, self.predicted_results),
+                "Recall" : sklearn.metrics.recall_score(self.true_results, classified_predictions, labels=None, pos_label=1, average=None, sample_weight=None)[1],
+                "Precision" : sklearn.metrics.precision_score(self.true_results, classified_predictions, labels=None, pos_label=1, average=None, sample_weight=None)[1],
+                "F1 Score" : sklearn.metrics.f1_score(self.true_results, classified_predictions),
+                "Accuracy" : sklearn.metrics.accuracy_score(self.true_results, classified_predictions),
+                "Confusion Matrix" : [conf_matrix[0][0], conf_matrix[0][1], conf_matrix[1][0], conf_matrix[1][1]]
+                }
 
 class visualize_data(object):
     """Offers an easy way to create beautiful histograms for the input data
@@ -189,6 +187,106 @@ class visualize_data(object):
         self.continous_data_distribution(self.enrichment[2499:3013], 'Enrichment Factors on the Negative 10nm Silver Nanoparticle \n with 3.0 mM NaCl')
         self.discrete_data_distribution()
 
+    def discrete_by_particle(self):
+        pos10 = [0,0]
+        neg10 = [0,0]
+        neg100 = [0,0]
+        neg10cys = [0,0]
+        neg10_8nacl = [0,0]
+        neg10_3nacl = [0,0]
+        for i, val in enumerate(self.target):
+            if(i<356):
+                if(val == 1):
+                    pos10[0] = pos10[0]+1
+                else:
+                    pos10[1] = pos10[1]+1
+            if(i >= 356 and i< 924):
+                if(val == 1):
+                    neg10[0] = neg10[0]+1
+                else:
+                    neg10[1] = neg10[1]+1
+            if(i>=924 and i<1502):
+                if(val == 1):
+                    neg100[0] = neg100[0]+1
+                else:
+                    neg100[1] = neg100[1]+1
+            if(i>=1502 and i<1989):
+                if(val == 1):
+                    neg10cys[0] = neg10cys[0]+1
+                else:
+                    neg10cys[1] = neg10cys[1]+1
+            if(i>=1989 and i<2499):
+                if(val == 1):
+                    neg10_8nacl[0] = neg10_8nacl[0]+1
+                else:
+                    neg10_8nacl[1] = neg10_8nacl[1]+1
+            if(i>=2499):
+                if(val == 1):
+                    neg10_3nacl[0] = neg10_3nacl[0]+1
+                else:
+                    neg10_3nacl[1] = neg10_3nacl[1]+1
+
+
+        bound_values = [neg10[0], neg100[0], neg10cys[0], neg10_8nacl[0], neg10_3nacl[0], pos10[0]]
+        unbound_values = [neg10[1], neg100[1], neg10cys[1], neg10_8nacl[1], neg10_3nacl[1], pos10[1]]
+        print sum(bound_values)
+        print sum(unbound_values)
+        ind = np.arange(len(bound_values))
+        width = 0.35
+        #Plot
+        fig, ax = plt.subplots()
+        rects1 = ax.bar(ind, bound_values, width, color="#800000")
+        rects2 = ax.bar(ind + width, unbound_values, width, color="#303030")
+        # add some text for labels, title and axes ticks
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.set_ylabel('Proteins', fontsize=26)
+        ax.set_title('Protein Classification by Particle', fontsize=26)
+        ax.set_xticks(ind + (width))
+        ax.get_xaxis().tick_bottom()
+        ax.get_yaxis().tick_left()
+        plt.yticks(fontsize=26)
+        #ax.set_xticklabels(('G1', 'G2', 'G3', 'G4', 'G5'))
+        ax.legend((rects1[0], rects2[0]), ('Bound', 'Unbound'), fontsize = 22)
+
+        self.autolabel(rects1, ax)
+        self.autolabel(rects2, ax)
+        plt.show()
+
+    def scatterplot(self, data, x, y):
+        bound_x = []
+        bound_y = []
+        unbound_x = []
+        unbound_y = []
+        for i, k in enumerate(self.target):
+            if k == 0:
+                bound_x.append(data[x][i])
+                bound_y.append(data[y][i])
+            else:
+                unbound_x.append(data[x][i])
+                unbound_y.append(data[y][i])
+
+        line = plt.figure()
+
+        plt.plot(unbound_y, unbound_x, "o", color='r', alpha=0.5)
+        plt.plot(bound_y, bound_x, "o", color='g', alpha=0.5)
+        plt.ylim([0, max(data[x])])
+        plt.xlim([0, max(data[y])])
+        plt.legend(('Bound', 'Unbound'), fontsize=18)
+        plt.ylabel(str(x), fontsize = 26)
+        plt.xlabel(str(y), fontsize=26)
+
+
+    def autolabel(self, rects, ax):
+        """
+        Attach a text label above each bar displaying its height
+        """
+        for rect in rects:
+            height = rect.get_height()
+            ax.text(rect.get_x() + rect.get_width()/2., 1.01*height,
+                '%d' % int(height),
+                ha='center', va='bottom', fontsize=20)
+
 def random_number():
     """This function imports the current time in nanoseconds to use as a pseudo-random number
     Takes no arguments
@@ -198,21 +296,6 @@ def random_number():
     dt = datetime.now()
     rnum = dt.microsecond
     return rnum
-
-def clean_data(data):
-    """This function cleans up the data, removing any non-numbers and replacing them with a median value
-    Takes them datas as an argument
-    Alters data without a need to return it
-    """
-    #Make sure the data is complete.
-    np.any(np.isnan(data), axis=0)
-    #If data is missing replace with median
-    from sklearn.preprocessing import Imputer
-    i = Imputer(strategy='median')
-    i.fit(data)
-    data = i.transform(data)
-    np.any(np.isnan(data), axis=0)
-    print "Data Clean up succesful"
 
 def optimize(model, training_data, training_results):
     """This function optimizes the machine learning classifier, returning the parameters that give the best accuracy
@@ -360,42 +443,88 @@ def _binary_clf_curve(y_true, y_score, pos_label=None, sample_weight=None):
         fps = 1 + threshold_idxs - tps
     return fps, tps, y_score[threshold_idxs]
 
-def main(argv):
-    #Fetch the data
+def clean_print(obj):
+    """
+    Prints the JSON in a clean format for all my
+    Biochemistry friends
+    """
+    if type(obj) == dict:
+        for key, val in obj.items():
+            if hasattr(val, '__iter__'):
+                print "\n" + key
+                clean_print(val)
+            else:
+                print '%s : %s' % (key, val)
+    elif type(obj) == list:
+        for val in obj:
+            if hasattr(val, '__iter__'):
+                clean_print(val)
+            else:
+                print val
+    else:
+        print str(obj) + "\n"
+
+def fetch_data(argv):
+    """
+    Pulls the Data from CSV format. Returns 3012 measured protein-particle
+    interactions represented as vectors
+    """
     try:
-        script, training_csv, target_csv, enrichment_csv = argv
-        data = pd.read_csv(training_csv)
-        target = pd.read_csv(target_csv)
-        enrichment = pd.read_csv(enrichment_csv)
+        data = pd.read_csv("train.csv")
+        target = pd.read_csv("class_result.csv")
+        enrichment = pd.read_csv("result.csv")
     except:
-        try:
-            data = pd.read_csv("train.csv")
-            target = pd.read_csv("class_result.csv")
-            enrichment = pd.read_csv("result.csv")
-        except:
-            usage()
-    #Dummify where necessary
+        "Error Fetching CSV Data"
+    #One hot encoding of categorical data
     data = get_dummies(data, 'size')
     data = get_dummies(data, 'charge')
     data = get_dummies(data, 'salt')
     data = get_dummies(data, 'cysteine')
-
+    #Fill NaN's with average value in Abundance data
+    count = 0
+    total = 0
+    for val in data['Abundance']:
+        if not np.isnan(val):
+            count+=1
+            total+=val
+    data = data.fillna(total/count)
+    #Normalize the data
+    min_max_scaler = sklearn.preprocessing.MinMaxScaler()
+    np_scaled = min_max_scaler.fit_transform(data)
+    df_normalized = pd.DataFrame(np_scaled)
+    #Classify enrichment data
+    classed_enrich = []
+    for i in enrichment.itertuples():
+        if i[1] >= 1:      #0:0.5:3
+            temp = 1
+        else:
+            temp = 0
+        classed_enrich.append(temp)
     #split data into training and testing set. Use testing set to validate model at the end
-    training_data, test_data, training_results, test_results = sklearn.cross_validation.train_test_split(data, target, test_size=0.1, random_state = random_number())
+    training_data, test_data, training_results, test_results = sklearn.cross_validation.train_test_split(df_normalized, classed_enrich, test_size=0.1, random_state = random_number())
     training_results= np.ravel(training_results)
     #Ravel those vectors
     test_results = np.ravel(test_results)
     enrichment = np.ravel(enrichment)
     target = np.ravel(target)
-    #Visualize the data
-    vis = visualize_data(enrichment)
-    vis.visualize_by_particle()
-    #Print Relevant information
-    print "Amount of Training data: " + str(len(training_data))
-    print "Amount of Testing Data: " + str(len(test_data))
 
-    est = RandomForestClassifierWithCoef(#criterion='mse',             #mean squared error criterion
-                                 n_estimators=1000,             #number of trees used by the algorithm
+    return training_data, test_data, training_results, test_results, enrichment, target, data
+
+def main(argv):
+    training_data, test_data, training_results, test_results, enrichment, target, data = fetch_data(argv)
+    #Visualize the data
+    #vis = visualize_data(enrichment)
+    #vis.visualize_by_particle()
+    #vis.discrete_data_distribution()
+    #vis.discrete_by_particle()
+    #vis.scatterplot(data, 'Pi', 'Weight')
+    #Print Relevant information
+    #print "Amount of Training data: " + str(len(training_data))
+    #print "Amount of Testing Data: " + str(len(test_data))
+
+    est = RandomForestClassifierWithCoef(
+                                 #criterion='mse',             #mean squared error criterion
+                                 n_estimators=2000,             #number of trees used by the algorithm
                                  oob_score=True,               #Out of box score
                                  max_features='auto',          #features at each split (auto=all)
                                  max_depth=None,               #max tree depth
@@ -408,115 +537,19 @@ def main(argv):
                                  )
 
     est.fit(training_data, training_results)                  #fit model to training data
+    #Get prediction probabilities
     probability_prediction = est.predict_proba(test_data)[:,1]
-    #export predicted and true results to excel,
-    comp = {}
-    comp = {'Weight' : test_data['Weight'], 'pI' : test_data['Pi'], 'True' : test_results, 'Predicted' : classify(probability_prediction, 0.5)}
-    cvs=pd.DataFrame(comp, columns = ['Weight', 'pI', 'True', 'Predicted'])
-    cvs.to_csv("Predicted.csv")
-    #Grab Feature Importance, Send it to Excel
-    features = est.feature_importances_
-    excel = pd.DataFrame(features, list(set(training_data)))
-    excel.to_csv("FeatureWeights.csv")
+    #Feature importance based on entropy calculations
+    features = dict(zip(list(data), est.feature_importances_))
     #Run validation Metrics
     val = validation_metrics(test_results, probability_prediction)
-    val.roc_curve()
-    val.youden_index()
-    val.well_rounded_validation()
-
-def usage():
-    help="""
-    >This script takes two command line arguments:
-        ->the first is for the experiment features.
-        ->the second is for the experiment targets.
-    """
-    print help +"\n"
+    #val.roc_curve()
+    #val.youden_index()
+    return val.well_rounded_validation(), features
 
 if __name__ == '__main__':
-    main(argv)
-    """
-    f1 = []
-    rcall = []
-    prec = []
-    p = []
-    roc = []
-    tpr = []
-    fpr = []
-    features = []
-    cmatrix0 = []
-    cmatrix1 = []
-    cmatrix2 = []
-    cmatrix3 = []
-    youds = []
-
-    for i in range(0,1):
-        res = main(argv)
-        res = list(res)
-        f1.append(res[0])
-        rcall.append(res[1])
-        prec.append(res[2])
-        p.append(res[3])
-        roc.append(res[4])
-        tpr.append(list(res[5]))
-        fpr.append(list(res[6]))
-        features.append(list(res[7]))
-        cmatrix0.append(res[8][0][0])
-        cmatrix1.append(res[8][0][1])
-        cmatrix2.append(res[8][1][0])
-        cmatrix3.append(res[8][1][1])
-        youds.append(res[9])
-
-    f = open('results.txt', 'w')
-    r = open('roc.txt', 'w')
-    t = open('features.txt', 'w')
-    c = open('cmatrix.txt', 'w')
-
-    y = open('features.txt', 'w')
-    for row in zip(*features):
-        y.write(str(row).strip(")").strip("(")+'\n')
-    y.close()
-
-    f.write("f1\n")
-    for item in f1:
-        f.write(str(item))
-        f.write("\n")
-    f.write("recall\n")
-    for item in rcall:
-        f.write(str(item))
-        f.write("\n")
-    f.write("precision\n")
-    for item in prec:
-        f.write(str(item))
-        f.write("\n")
-    f.write("pscore\n")
-    for item in p:
-        f.write(str(p))
-        f.write('\n')
-    f.write("roc\n")
-    for item in roc:
-        f.write(str(item))
-        f.write("\n")
-    r.write("tpr\n")
-    for row in zip(*tpr):
-        r.write(str(row).strip(")").strip("(").strip(",")+'\n')
-    r.write("fpr\n")
-    for row in zip(*fpr):
-        r.write(str(row).strip(")").strip("(")+'\n')
-    for row in zip(*features):
-        t.write(str(row).strip(")").strip("(").strip(",")+'\n')
-    for row in cmatrix0:
-        c.write(str(row) + ',\n')
-    c.write("NEXT\n")
-    for row in cmatrix1:
-        c.write(str(row) + ',\n')
-    c.write("NEXT\n")
-    for row in cmatrix2:
-        c.write(str(row) + ',\n')
-    c.write("NEXT\n")
-    for row in cmatrix3:
-        c.write(str(row) + ',\n')
-    f.close()
-    r.close()
-    t.close()
-    c.close()
-    """
+    results = {}
+    for i in range(0,50):
+        metrics = main(argv)
+        results["Run_" + str(i)] = metrics[0], metrics[1]
+    print json.dumps(results)
