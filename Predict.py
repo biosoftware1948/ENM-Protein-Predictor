@@ -11,17 +11,16 @@ containing information about the proteins, particles, and solvent conditions.
 To make predictions from our database we use a random forest classification algorithm.
 We validate our classifications with several statistical methods including ROC curves.
 """
-import sklearn
 import math
 import numpy as np
 import pandas as pd
+import sklearn
 from sklearn.metrics import roc_auc_score, roc_curve, auc
-import matplotlib.pyplot as plt
-from sys import argv
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.decomposition import PCA
 from sklearn.feature_selection import RFECV
 from sklearn.grid_search import GridSearchCV
+import matplotlib.pyplot as plt
+from sys import argv
 import sys
 import json
 
@@ -102,7 +101,7 @@ class validation_metrics(object):
     def well_rounded_validation(self):
         """Calculates a handful of important model validation metrics. I consider this a well rounded validation
         Takes no arguments
-        Prints the AUROC, Recall, Precision, F1-score, Accuracy, and confusion matrix from the model
+        Returns a Dict containing the AUROC, Recall, Precision, F1-score, Accuracy, and confusion matrix from the model
         """
         classified_predictions = classify(self.predicted_results, 0.5)
         conf_matrix = sklearn.metrics.confusion_matrix(self.true_results, classified_predictions, labels=None)
@@ -146,37 +145,10 @@ class visualize_data(object):
         plt.tight_layout()
         plt.show()
 
-    def discrete_data_distribution(self):
-        """This function gives a visualization of class balance in the data
-        No input
-        Output graph isnt as dank as the histogram but thats ok
-        """
-        bound = 0
-        ubound = 0
-        iterations = 0
-        for i in self.target:
-            iterations = iterations + 1
-            if i == 1:
-                bound = bound + 1
-            else:
-                ubound = ubound + 1
-
-        if iterations != len(self.target):
-            print "iterations did not match length of target data"
-            exit()
-        #Plot
-        x = [0,1]
-        y = [ubound, bound]
-        plt.bar(x, y, width=0.1, color='blue')
-        plt.title('Class Counts')
-        plt.ylabel('Frequency')
-        plt.xlabel('Class')
-        plt.show()
-
     def visualize_by_particle(self):
         """Visualizes all the particle types in the dataset
         Takes no arguments
-        Outputs 7 graphs
+        Outputs 7 graphs, one for each reaction condition
         """
         self.continous_data_distribution(self.enrichment, 'Enrichment Factors on All Particles in The Database with 50 bins')
         self.continous_data_distribution(self.enrichment[0:356], 'Enrichment Factors on the Positive 10nm Silver Nanoparticle \n with no Solute')
@@ -187,73 +159,11 @@ class visualize_data(object):
         self.continous_data_distribution(self.enrichment[2499:3013], 'Enrichment Factors on the Negative 10nm Silver Nanoparticle \n with 3.0 mM NaCl')
         self.discrete_data_distribution()
 
-    def discrete_by_particle(self):
-        pos10 = [0,0]
-        neg10 = [0,0]
-        neg100 = [0,0]
-        neg10cys = [0,0]
-        neg10_8nacl = [0,0]
-        neg10_3nacl = [0,0]
-        for i, val in enumerate(self.target):
-            if(i<356):
-                if(val == 1):
-                    pos10[0] = pos10[0]+1
-                else:
-                    pos10[1] = pos10[1]+1
-            if(i >= 356 and i< 924):
-                if(val == 1):
-                    neg10[0] = neg10[0]+1
-                else:
-                    neg10[1] = neg10[1]+1
-            if(i>=924 and i<1502):
-                if(val == 1):
-                    neg100[0] = neg100[0]+1
-                else:
-                    neg100[1] = neg100[1]+1
-            if(i>=1502 and i<1989):
-                if(val == 1):
-                    neg10cys[0] = neg10cys[0]+1
-                else:
-                    neg10cys[1] = neg10cys[1]+1
-            if(i>=1989 and i<2499):
-                if(val == 1):
-                    neg10_8nacl[0] = neg10_8nacl[0]+1
-                else:
-                    neg10_8nacl[1] = neg10_8nacl[1]+1
-            if(i>=2499):
-                if(val == 1):
-                    neg10_3nacl[0] = neg10_3nacl[0]+1
-                else:
-                    neg10_3nacl[1] = neg10_3nacl[1]+1
-
-
-        bound_values = [neg10[0], neg100[0], neg10cys[0], neg10_8nacl[0], neg10_3nacl[0], pos10[0]]
-        unbound_values = [neg10[1], neg100[1], neg10cys[1], neg10_8nacl[1], neg10_3nacl[1], pos10[1]]
-        print sum(bound_values)
-        print sum(unbound_values)
-        ind = np.arange(len(bound_values))
-        width = 0.35
-        #Plot
-        fig, ax = plt.subplots()
-        rects1 = ax.bar(ind, bound_values, width, color="#800000")
-        rects2 = ax.bar(ind + width, unbound_values, width, color="#303030")
-        # add some text for labels, title and axes ticks
-        ax.spines["top"].set_visible(False)
-        ax.spines["right"].set_visible(False)
-        ax.set_ylabel('Proteins', fontsize=26)
-        ax.set_title('Protein Classification by Particle', fontsize=26)
-        ax.set_xticks(ind + (width))
-        ax.get_xaxis().tick_bottom()
-        ax.get_yaxis().tick_left()
-        plt.yticks(fontsize=26)
-        #ax.set_xticklabels(('G1', 'G2', 'G3', 'G4', 'G5'))
-        ax.legend((rects1[0], rects2[0]), ('Bound', 'Unbound'), fontsize = 22)
-
-        self.autolabel(rects1, ax)
-        self.autolabel(rects2, ax)
-        plt.show()
-
     def scatterplot(self, data, x, y):
+        """
+        Takes in the dataframe and two columns of choice.
+        Outputs a 2-d scatter plot of the data
+        """
         bound_x = []
         bound_y = []
         unbound_x = []
@@ -276,17 +186,6 @@ class visualize_data(object):
         plt.ylabel(str(x), fontsize = 26)
         plt.xlabel(str(y), fontsize=26)
 
-
-    def autolabel(self, rects, ax):
-        """
-        Attach a text label above each bar displaying its height
-        """
-        for rect in rects:
-            height = rect.get_height()
-            ax.text(rect.get_x() + rect.get_width()/2., 1.01*height,
-                '%d' % int(height),
-                ha='center', va='bottom', fontsize=20)
-
 def random_number():
     """This function imports the current time in nanoseconds to use as a pseudo-random number
     Takes no arguments
@@ -302,9 +201,7 @@ def optimize(model, training_data, training_results):
     Takes the model, training data and training targets as arguments
     Outputs the best Parameters
     """
-
     #add whatever your heart desires to param grid, keep in mind its an incredibly inefficient algorithm
-    #Remember when you almost broke your computer? I do.
     param_grid = {
         'n_estimators': [1000],
         'max_features': ['auto'],
@@ -331,10 +228,10 @@ def recursive_feature_elimination(model, training_data, training_results):
     print selector.ranking_
     print "\n"
     print "Optimal number of features: "
-
     print selector.n_features_
     print "\n"
     print selector.grid_scores_
+
 def get_dummies(dataframe, category):
     """This function converts categorical variables into dummy variables
     Takes pandas dataframe and the catefory name as arguments
@@ -464,7 +361,7 @@ def clean_print(obj):
     else:
         print str(obj) + "\n"
 
-def fetch_data(argv):
+def fetch_data():
     """
     Pulls the Data from CSV format. Returns 3012 measured protein-particle
     interactions represented as vectors
@@ -492,10 +389,10 @@ def fetch_data(argv):
     min_max_scaler = sklearn.preprocessing.MinMaxScaler()
     np_scaled = min_max_scaler.fit_transform(data)
     df_normalized = pd.DataFrame(np_scaled)
-    #Classify enrichment data
+    #Classify enrichment data, using enrichment ratio of 1
     classed_enrich = []
     for i in enrichment.itertuples():
-        if i[1] >= 1:      #0:0.5:3
+        if i[1] >= 1:
             temp = 1
         else:
             temp = 0
@@ -510,21 +407,19 @@ def fetch_data(argv):
 
     return training_data, test_data, training_results, test_results, enrichment, target, data
 
-def main(argv):
-    training_data, test_data, training_results, test_results, enrichment, target, data = fetch_data(argv)
+def main():
+    training_data, test_data, training_results, test_results, enrichment, target, data = fetch_data()
     #Visualize the data
-    #vis = visualize_data(enrichment)
-    #vis.visualize_by_particle()
-    #vis.discrete_data_distribution()
-    #vis.discrete_by_particle()
-    #vis.scatterplot(data, 'Pi', 'Weight')
+    vis = visualize_data(enrichment)
+    vis.visualize_by_particle()
+    vis.scatterplot(data, 'Pi', 'Weight')
     #Print Relevant information
-    #print "Amount of Training data: " + str(len(training_data))
-    #print "Amount of Testing Data: " + str(len(test_data))
+    print "Amount of Training data: " + str(len(training_data))
+    print "Amount of Testing Data: " + str(len(test_data))
 
     est = RandomForestClassifierWithCoef(
                                  #criterion='mse',             #mean squared error criterion
-                                 n_estimators=2000,             #number of trees used by the algorithm
+                                 n_estimators=10000,             #number of trees used by the algorithm
                                  oob_score=True,               #Out of box score
                                  max_features='auto',          #features at each split (auto=all)
                                  max_depth=None,               #max tree depth
@@ -543,13 +438,13 @@ def main(argv):
     features = dict(zip(list(data), est.feature_importances_))
     #Run validation Metrics
     val = validation_metrics(test_results, probability_prediction)
-    #val.roc_curve()
-    #val.youden_index()
+    val.roc_curve()
+    val.youden_index()
     return val.well_rounded_validation(), features
 
 if __name__ == '__main__':
     results = {}
-    for i in range(0,50):
-        metrics = main(argv)
+    for i in range(0, int(argv[1])):
+        metrics = main()
         results["Run_" + str(i)] = metrics[0], metrics[1]
     print json.dumps(results)
