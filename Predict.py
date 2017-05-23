@@ -124,7 +124,7 @@ class visualize_data(object):
         self.target = classify(enrichment, 1.0)
 
     def continous_data_distribution(self, enrichment, particle):
-        """This function creates a dank histogram of given data
+        """This function creates a nice histogram of given data
         Takes a title and enrichment values as parameters
         outputs aesthetic graph
         """
@@ -399,8 +399,8 @@ def fetch_data():
         classed_enrich.append(temp)
     #split data into training and testing set. Use testing set to validate model at the end
     training_data, test_data, training_results, test_results = sklearn.cross_validation.train_test_split(df_normalized, classed_enrich, test_size=0.1, random_state = random_number())
+    #reshpae vectors
     training_results= np.ravel(training_results)
-    #Ravel those vectors
     test_results = np.ravel(test_results)
     enrichment = np.ravel(enrichment)
     target = np.ravel(target)
