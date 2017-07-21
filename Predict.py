@@ -136,10 +136,10 @@ class visualize_data(object):
         ax.get_yaxis().tick_left()
         plt.xticks(fontsize=26)
         plt.yticks(fontsize=26)
-        plt.ylim([0.0, 250])
+        plt.ylim([0.0, 100])
         plt.xlim([-3.0,3.0])
-        plt.hist(np.log10(enrichment), bins=50, color = "#3F5D7D")
-        plt.title('Histogram of '  + str(particle), y=1.08, fontsize=22)
+        plt.hist(np.log10(enrichment), bins=25, color = "#3F5D7D")
+        #plt.title('Histogram of '  + str(particle), y=1.08, fontsize=22)
         plt.ylabel('Frequency', fontsize=26)
         plt.xlabel('Logarithmic Enrichment Factor', fontsize=26)
         plt.tight_layout()
@@ -392,11 +392,17 @@ def fetch_data():
     #Classify enrichment data, using enrichment ratio of 1
     classed_enrich = []
     for i in enrichment.itertuples():
-        if i[1] >= 1:
+        if i[1] >= 0.5:
             temp = 1
         else:
             temp = 0
         classed_enrich.append(temp)
+    r = 0
+    for i in classed_enrich:
+        if i == 1:
+            r= r+1
+
+        print r    
     #split data into training and testing set. Use testing set to validate model at the end
     training_data, test_data, training_results, test_results = sklearn.cross_validation.train_test_split(df_normalized, classed_enrich, test_size=0.1, random_state = random_number())
     #reshpae vectors
@@ -412,7 +418,7 @@ def main():
     #Visualize the data
     vis = visualize_data(enrichment)
     vis.visualize_by_particle()
-    vis.scatterplot(data, 'Pi', 'Weight')
+    #vis.scatterplot(data, 'Pi', 'Weight')
     #Print Relevant information
     print "Amount of Training data: " + str(len(training_data))
     print "Amount of Testing Data: " + str(len(test_data))
@@ -437,9 +443,9 @@ def main():
     #Feature importance based on entropy calculations
     features = dict(zip(list(data), est.feature_importances_))
     #Run validation Metrics
-    val = validation_metrics(test_results, probability_prediction)
-    val.roc_curve()
-    val.youden_index()
+    #val = validation_metrics(test_results, probability_prediction)
+    #val.roc_curve()
+    #val.youden_index()
     return val.well_rounded_validation(), features
 
 if __name__ == '__main__':

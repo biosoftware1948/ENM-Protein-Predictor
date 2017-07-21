@@ -19,10 +19,6 @@ RFECV.csv
 
 RFECV.xlsx
 
-train.csv
-
-train.csv
-
 result.csv
 
 json_read.py
@@ -34,5 +30,3 @@ discrt.py
 nosolvout.json
 
 nocysout.json
-
-class_result.csv
