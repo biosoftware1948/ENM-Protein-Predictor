@@ -32,6 +32,10 @@ nosolvout.json
 
 nocysout.json
 
+train.csv
+
 Predict.py
 
 train.csv
+
+class_result.csv

@@ -1,3 +1,17 @@
+"""
+Matthew Findlay
+Santa Clara University
+Dr. Wheeler's Lab
+
+This Script predicts if proteins will be found in the protein corona on the surface of Engineered Nanomaterials.
+To achieve this we first experimentally isolate proteins that bind and do not bind to engineered nanomaterials
+under a variety of relevant biological conditions. We send these protein samples to Stanford's to LC-MS/MS facilities
+to identify the proteins and their associated spectral counts. We then mine online databases to create a database
+containing information about the proteins, particles, and solvent conditions.
+To make predictions from our database we use a random forest classification algorithm.
+We validate our classifications with several statistical methods including ROC curves.
+"""
+
 import data_utils
 import visualization_tools
 import predictor
