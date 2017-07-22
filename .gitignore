@@ -1,3 +1,4 @@
+*.pyc
 
 Predicted.csv
 
@@ -30,3 +31,7 @@ discrt.py
 nosolvout.json
 
 nocysout.json
+
+Predict.py
+
+train.csv

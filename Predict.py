@@ -402,7 +402,7 @@ def fetch_data():
         if i == 1:
             r= r+1
 
-        print r    
+        print r
     #split data into training and testing set. Use testing set to validate model at the end
     training_data, test_data, training_results, test_results = sklearn.cross_validation.train_test_split(df_normalized, classed_enrich, test_size=0.1, random_state = random_number())
     #reshpae vectors

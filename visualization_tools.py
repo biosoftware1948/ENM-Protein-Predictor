@@ -1,3 +1,7 @@
+""" This module contains all visualization tools used
+offers a cool interactive 3d visualizor, 2d visualizor and some histograms
+"""
+
 from __future__ import division
 
 import data_utils
@@ -9,7 +13,7 @@ import math
 
 
 class visualize_data(object):
-    """Offers an easy way to create beautiful histograms for the input data
+    """Offers an easy way to create visualizations for the input data
     Takes a target value as constructor variable (enrichment values)
     """
     def __init__(self, enrichment):
@@ -108,22 +112,21 @@ class visualize_data(object):
         Takes in the dataframe and two columns of choice.
         Outputs a 2-d scatter plot of the data
         """
-        bound_x = []
-        bound_y = []
-        unbound_x = []
-        unbound_y = []
+
+        plot_data = {'x': {'bound' : [], 'unbound': []},
+                     'y': {'bound' : [], 'unbound': []}}
+
         for i, k in enumerate(self.target):
-            if k == 0:
-                bound_x.append(data[x][i])
-                bound_y.append(data[y][i])
+            if k == 1:
+                plot_data['x']['bound'].append(data[x][i])
+                plot_data['y']['bound'].append(data[y][i])
             else:
-                unbound_x.append(data[x][i])
-                unbound_y.append(data[y][i])
+                plot_data['x']['unbound'].append(data[x][i])
+                plot_data['x']['unbound'].append(data[y][i])
 
         line = plt.figure()
-
-        plt.plot(unbound_y, unbound_x, "o", color='r', alpha=0.5)
-        plt.plot(bound_y, bound_x, "o", color='g', alpha=0.5)
+        plt.plot(plot_data['x']['unbound'], plot_data['x']['unbound'], "o", color='r', alpha=0.5)
+        plt.plot(plot_data['y']['bound'].append(data[y][i]), plot_data['x']['bound'], "o", color='g', alpha=0.5)
         plt.ylim([0, max(data[x])])
         plt.xlim([0, max(data[y])])
         plt.legend(('Bound', 'Unbound'), fontsize=18)
@@ -163,3 +166,46 @@ class visualize_data(object):
             ax.text(rect.get_x() + rect.get_width()/2., 1.01*height,
                 '%d' % int(height),
                 ha='center', va='bottom', fontsize=20)
+
+class visualize_validations(object):
+    """Offers support for the validator Module
+    to help validate visualizations.
+    Params: None
+    """
+    def __init__(self):
+        pass
+
+    def roc_plot(self, roc, fpr, tpr, thresholds):
+        plt.figure(figsize=(12, 9))
+        ax = plt.subplot(111)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.get_xaxis().tick_bottom()
+        ax.get_yaxis().tick_left()
+        plt.xlim([0.0, 1.01])
+        plt.ylim([0.0, 1.01])
+        plt.xticks(fontsize=19)
+        plt.yticks(fontsize=19)
+        plt.plot(fpr, tpr, label='Area Under the Curve=%.2f' % roc, color="#800000", linewidth=2)
+        plt.plot([0, 1], [0, 1], 'k--', label = 'Area Under the Random Guess Curve=0.5')
+        plt.xlabel('1-specificity', fontsize=20)
+        plt.ylabel('Sensitivity', fontsize=20)
+        plt.title('Receiver Operating Characteristic Curve', fontsize=22)
+        plt.legend(loc="lower right")
+        plt.show()
+
+    def youden_index_plot(self, thresholds, youden_index_values):
+        plt.figure(figsize=(12, 9))
+        ax = plt.subplot(111)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.get_xaxis().tick_bottom()
+        ax.get_yaxis().tick_left()
+        plt.xticks(fontsize=19)
+        plt.yticks(fontsize=19)
+        plt.ylim([0.0, 0.5])
+        plt.title('Optimal Accuracy Cutoff', fontsize=22)
+        plt.xlabel('Classification Cutoff Threshold',fontsize=20)
+        plt.ylabel('Youden Index',fontsize=20)
+        plt.plot(thresholds, youden_index_values, color="#800000", linewidth=2)
+        plt.show()

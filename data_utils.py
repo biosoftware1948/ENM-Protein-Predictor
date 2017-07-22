@@ -13,9 +13,14 @@ def classify(data, cutoff):
     Takes unclassified data the cutoff as arguments
     returns classified data in an array
     """
-    classified_data = np.empty((len(data)))
     if not isinstance(data, np.ndarray):
-        data = np.array(data)
+        try:
+            data = np.array(data)
+        except:
+            print "data could not be converted to type: numpy array"
+
+    classified_data = np.empty((len(data)))
+
     for i, val in enumerate(data):
         if val >= cutoff:
             classified_data[i] = 1
@@ -29,6 +34,7 @@ def fill_nan(data, column):
     dataframe and column as input, returns dataframe with
     nans filled in specified column
     """
+    assert isinstance(data, pd.DataFrame), 'data argument needs to be pandas dataframe'
     count = 0
     total = 0
     for val in data[column]:
@@ -43,6 +49,7 @@ def get_dummies(dataframe, category):
     Takes pandas dataframe and the catefory name as arguments
     Returns the dataframe with new dummy variables
     """
+    assert isinstance(dataframe, pd.DataFrame), 'data argument needs to be pandas dataframe'
     dummy = pd.get_dummies(dataframe[category], prefix=category)
     dataframe = pd.concat([dataframe,dummy], axis = 1)
     dataframe.drop(category, axis=1, inplace=True)
@@ -72,11 +79,16 @@ def clean_print(obj):
         else:
             print str(obj) + "\n"
 
-def fetch_data(enm_database):
+def fetch_data(enm_database, test_size=0.0):
     """
     Pulls the Data from CSV format. Returns 3012 measured protein-particle
-    interactions represented as vectors
+    interactions represented as vectors.
+    Parameters: path to database and the percent of the database to be used
+    as testing data
+    Returns: Split data, and unsplit data
     """
+    assert isinstance(enm_database, str), "please pass a string specifying database location"
+    assert test_size >= 0.0 and test_size < 1.0, "test size must be between zero and one"
     dir_path = os.path.dirname(os.path.realpath(__file__))
     enm_database = os.path.join(dir_path, enm_database)
 
@@ -102,12 +114,10 @@ def fetch_data(enm_database):
     #Classify enrichment data, using enrichment ratio of 1
     classed_enrich = classify(enrichment, 0.5)
     #split data into training and testing set. Use testing set to validate model at the end
-    X_train, X_test, Y_train, Y_test = sklearn.cross_validation.train_test_split(df_normalized, classed_enrich, test_size=0.1, random_state = random.randint(1, 2**8))
+    X_train, X_test, Y_train, Y_test = sklearn.cross_validation.train_test_split(df_normalized, classed_enrich, test_size=test_size, random_state = random.randint(1, 2**8))
     #Ravel those vectors
     Y_test = np.ravel(Y_test)
     Y_train = np.ravel(Y_train)
 
 
     return X_train, X_test, Y_train, Y_test, enrichment, data
-
-fetch_data("train.csv")
