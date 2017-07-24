@@ -27,7 +27,7 @@ class validation_metrics(object):
         for i in range(0, len(thresholds)):
             youden_index_values[i] = ((tpr[i]+(1-fpr[i])-1))/(math.sqrt(2))
 
-        visualization_tools.visualize_validations().youden_index_plot(thresholds, youden_index_values)
+        visualization_tools.visualize_data.youden_index_plot(thresholds, youden_index_values)
 
     def roc_curve(self):
         """Plots the Reciever Operating Characteristic Curve
@@ -37,7 +37,7 @@ class validation_metrics(object):
         roc = sklearn.metrics.roc_auc_score(self.true_results, self.predicted_results)
         fpr, tpr, thresholds = set_threshold_roc_curve(self.true_results, self.predicted_results, pos_label=1, drop_intermediate=True)
 
-        visualization_tools.visualize_validations().roc_plot(roc, fpr, tpr, thresholds)
+        visualization_tools.visualize_data.roc_plot(roc, fpr, tpr, thresholds)
 
     def well_rounded_validation(self):
         """Calculates a handful of important model validation metrics. I consider this a well rounded validation

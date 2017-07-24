@@ -22,6 +22,17 @@ import json
 def main():
     X_train, X_test, Y_train, Y_test, enrichment, data = data_utils.fetch_data('train.csv', 0.1)
 
+    #Remove comments to visualize data
+    #vis_tools = visualization_tools(data, enrichment)
+    #vis_tools.interactive_3d_plot(self, data, x_label, y_label, z_label)
+    #vis_tools.continous_data_distribution(self, particle_name)
+    #vis_tools.continous_distribution_by_particle()
+    #vis_tools.scatterplot(self, data, x, y)
+
+    """
+    Overloaded Random Forest Classifier with coefficients
+    to use for recursive feature elimination and cross validation
+    """
     est = predictor.RandomForestClassifierWithCoef(
                                  #criterion='mse',             #mean squared error criterion
                                  n_estimators=1000,             #number of trees used by the algorithm
@@ -38,8 +49,10 @@ def main():
     est.fit(X_train, Y_train)
     probability_prediction = est.predict_proba(X_test)[:,1]
     val = validator.validation_metrics(Y_test, probability_prediction)
-    val.youden_index()
-    val.roc_curve()
+
+    #Remove comments to visualize validation metrics
+    #val.youden_index()
+    #val.roc_curve()
 
     return val.well_rounded_validation(), dict(zip(list(data), est.feature_importances_))
 

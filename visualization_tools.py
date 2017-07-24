@@ -16,7 +16,7 @@ class visualize_data(object):
     """Offers an easy way to create visualizations for the input data
     Takes a target value as constructor variable (enrichment values)
     """
-    def __init__(self, enrichment):
+    def __init__(self, data, enrichment):
         self.data = data
         self.enrichment = enrichment
         self.target = data_utils.classify(enrichment, 0.5)
@@ -68,7 +68,7 @@ class visualize_data(object):
         ax.legend()
         plt.show()
 
-    def continous_data_distribution(self, particle, enrichment=None):
+    def continous_data_distribution(self, particle_name, enrichment=None):
         """This function creates a dank histogram of given data
         Takes a title and enrichment values as parameters
         outputs aesthetic graph
@@ -87,13 +87,14 @@ class visualize_data(object):
         plt.ylim([0.0, 100])
         plt.xlim([-3.0,3.0])
         plt.hist(np.log10(enrichment), bins=25, color = "#3F5D7D")
-        plt.title('Histogram of '  + str(particle), y=1.08, fontsize=22)
+        plt.title('Histogram of '  + str(particle_name), y=1.08, fontsize=22)
         plt.ylabel('Frequency', fontsize=26)
         plt.xlabel('Logarithmic Enrichment Factor', fontsize=26)
         plt.tight_layout()
         plt.show()
 
-    def visualize_by_particle(self):
+    @staticmethod
+    def continous_distribution_by_particle():
         """Visualizes all the particle types in the dataset
         Takes no arguments
         Outputs 7 graphs, one for each reaction condition
@@ -167,15 +168,8 @@ class visualize_data(object):
                 '%d' % int(height),
                 ha='center', va='bottom', fontsize=20)
 
-class visualize_validations(object):
-    """Offers support for the validator Module
-    to help validate visualizations.
-    Params: None
-    """
-    def __init__(self):
-        pass
-
-    def roc_plot(self, roc, fpr, tpr, thresholds):
+    @staticmethod
+    def roc_plot(roc, fpr, tpr, thresholds):
         plt.figure(figsize=(12, 9))
         ax = plt.subplot(111)
         ax.spines["top"].set_visible(False)
@@ -194,7 +188,8 @@ class visualize_validations(object):
         plt.legend(loc="lower right")
         plt.show()
 
-    def youden_index_plot(self, thresholds, youden_index_values):
+    @staticmethod
+    def youden_index_plot(thresholds, youden_index_values):
         plt.figure(figsize=(12, 9))
         ax = plt.subplot(111)
         ax.spines["top"].set_visible(False)
