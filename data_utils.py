@@ -1,5 +1,13 @@
 """
-This Module deals with data fetching and cleaning
+This Module deals with data fetching and cleaning.
+It includes several functions:
+
+1) classify: classifies continous data
+2) fill_nan: this fills nan values in a column with the meaningless
+3) one_hot_encode: converts categorical data to one hot vectors
+4) clean_print: Prints data in a clean format
+5) fetch_data: Specific for our dataset, pre-processes ENM data
+    and splits it accordingly
 """
 import os
 import pandas as pd
@@ -9,9 +17,16 @@ from sklearn import preprocessing, cross_validation
 import random
 
 def classify(data, cutoff):
-    """This function classifies particles as bound or unbound
-    Takes unclassified data the cutoff as arguments
-    returns classified data in an array
+    """
+    This function classifies continous data.
+    In our case we classify particles as bound or unbound
+
+    Args:
+        :param data (array): array of continous data
+        :param cutoff (float): cutoff value for classification
+
+    Returns:
+        :classified_data(np.array): classified data
     """
     if not isinstance(data, np.ndarray):
         try:
@@ -30,9 +45,14 @@ def classify(data, cutoff):
     return classified_data
 
 def fill_nan(data, column):
-    """ Fills nan values in specified column. Takes
-    dataframe and column as input, returns dataframe with
-    nans filled in specified column
+    """ Fills nan values with mean in specified column.
+
+    Args:
+        :param data (pandas Dataframe): Dataframe containing column with nan values
+        :param column (String): specifying column to fill_nans
+
+    Returns:
+        :data (pandas Dataframe): Containing the column with filled nan values
     """
     assert isinstance(data, pd.DataFrame), 'data argument needs to be pandas dataframe'
     count = 0
@@ -44,10 +64,16 @@ def fill_nan(data, column):
     data[column] = data[column].fillna(total/count)
     return data
 
-def get_dummies(dataframe, category):
-    """This function converts categorical variables into dummy variables
-    Takes pandas dataframe and the catefory name as arguments
-    Returns the dataframe with new dummy variables
+def one_hot_encode(dataframe, category):
+    """This function converts categorical variables into one hot vectors
+
+    Args:
+        :param dataframe (pandas Dataframe): Dataframe containing column to be encoded
+        :param category (String): specifying the column to encode
+
+    Returns:
+        :dataframe (Pandas Dataframe): With the specified column now encoded into a one
+        hot representation
     """
     assert isinstance(dataframe, pd.DataFrame), 'data argument needs to be pandas dataframe'
     dummy = pd.get_dummies(dataframe[category], prefix=category)
@@ -59,6 +85,12 @@ def clean_print(obj):
     """
     Prints the JSON in a clean format for all my
     Biochemistry friends
+
+    Args:
+        :param obj (object): Any object you wish to print in readable format
+
+    Returns:
+        None
     """
     if isinstance(obj, dict):
         for key, val in obj.items():
@@ -83,9 +115,19 @@ def fetch_data(enm_database, test_size=0.0):
     """
     Pulls the Data from CSV format. Returns 3012 measured protein-particle
     interactions represented as vectors.
-    Parameters: path to database and the percent of the database to be used
-    as testing data
-    Returns: Split data, and unsplit data
+
+    Args:
+        :param enm_database (String): specifying the path of the csv file
+        :param test_size (float): The percentage of the data to be used for
+        testing, must be between [0, 1]
+
+    Returns:
+        :X_train (np.array floats): X values of training data
+        :X_test (np.array floats): X values of testing data
+        :Y_train (np.array floats): Y values of training data
+        :Y_test (np.array floats): Y values of testing data
+        :enrichment (np.array floats): Enrichment values
+        :data (pandas dataframe): Processed database
     """
     assert isinstance(enm_database, str), "please pass a string specifying database location"
     assert test_size >= 0.0 and test_size < 1.0, "test size must be between zero and one"
@@ -101,10 +143,10 @@ def fetch_data(enm_database, test_size=0.0):
         print "Error Fetching CSV Data"
 
     #One hot encoding of categorical data
-    data = get_dummies(data, 'size')
-    data = get_dummies(data, 'charge')
-    data = get_dummies(data, 'salt')
-    data = get_dummies(data, 'cysteine')
+    data = one_hot_encode(data, 'size')
+    data = one_hot_encode(data, 'charge')
+    data = one_hot_encode(data, 'salt')
+    data = one_hot_encode(data, 'cysteine')
     #Clean nan values
     data = fill_nan(data, 'Abundance')
     #Normalize the data

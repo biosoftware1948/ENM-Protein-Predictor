@@ -57,8 +57,10 @@ def main():
     return val.well_rounded_validation(), dict(zip(list(data), est.feature_importances_))
 
 if __name__ == '__main__':
+    #Take the amount of times to run the model as a command line argument
     results = {}
     for i in range(0, int(sys.argv[1])):
         metrics = main()
         results["Run_" + str(i)] = metrics[0], metrics[1]
+    #dump the results as json
     print json.dumps(results)
