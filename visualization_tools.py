@@ -24,13 +24,15 @@ Contains:
 """
 
 from __future__ import division
-
 import data_utils
 import matplotlib.pyplot as plt
+import seaborn as sns
 import pandas as pd
 import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
 import math
+from mpl_toolkits.mplot3d import Axes3D
+from string import ascii_letters
+
 
 class visualize_data(object):
     """Offers an easy way to create visualizations for the input data
@@ -287,3 +289,44 @@ class visualize_data(object):
         plt.ylabel('Youden Index',fontsize=20)
         plt.plot(thresholds, youden_index_values, color="#800000", linewidth=2)
         plt.show()
+
+    def correlation_plot(self):
+        """
+        sns.set(style="white")
+
+
+        mask = np.zeros_like(corr, dtype=np.bool)
+        mask[np.triu_indices_from(mask)] = True
+
+        f, ax = plt.subplots(figsize=(11,9))
+        cmap = sns.diverging_palette(220, 10, as_cmap=True)
+        print "workfegggg"
+        sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0,
+        square=True, linewidths=0.5, cbar_kws={"shrink": .5})
+
+        plt.show()
+
+        corr = self.data.iloc[:,:4].corr()
+        print corr
+        plt.matshow(corr);
+        plt.colorbar()
+        plt.show()"""
+        corr = self.data.iloc[:,:8].corr()
+        f, ax = plt.subplots(figsize=(11,9))
+        ax.grid(False)
+        for (i, j), z in np.ndenumerate(corr):
+            ax.text(j, i, '{:0.1f}'.format(z), ha='center', va='center')
+
+        plt.imshow(corr, cmap='RdYlGn', interpolation='none', aspect='auto', vmin=-1, vmax=1)
+        plt.colorbar(ticks = (-1.0, -0.5, 0, 0.5, 1))
+        plt.xticks(range(len(corr)), corr.columns, rotation='vertical', fontsize=18)
+        plt.yticks(range(len(corr)), corr.columns, fontsize=18);
+        plt.suptitle('Correlation plot of protein features', fontsize=22, fontweight='bold')
+        plt.show()
+
+
+if __name__ == "__main__":
+    db = data_utils.data_base()
+    db.clean_data()
+    v = visualize_data(db.X_train, db.Y_enrichment)
+    v.correlation_plot()

@@ -43,12 +43,14 @@ class validation_metrics(object):
 
     def youden_index(self):
         """Calculates the youden_index for each threshold and produces a plot
+        of youden index vs threshold
 
         Args:
             None
 
         Returns:
-            None
+            :youden_index_values (np array of floats): The values of the youden
+            index at each threshold
         """
         tpr = []
         fpt = []
@@ -60,8 +62,11 @@ class validation_metrics(object):
 
         visualization_tools.visualize_data.youden_index_plot(thresholds, youden_index_values)
 
+        return youden_index_values
     def roc_curve(self):
-        """Plots the Reciever Operating Characteristic Curve
+        """Plots the Reciever Operating Characteristic Curve (true positive
+        rate vs false positive rate) Generate area under the curve and Calculates
+        true positive and false positive rate for an array of thresholds.
 
         Args:
             None
@@ -105,7 +110,7 @@ class validation_metrics(object):
 #***HELPER FUNCTIONS***#
 def stable_cumsum(arr, rtol=1e-05, atol=1e-08):
     """
-    Taken From sci-kit learn documentation to help set_threshold_roc_curve
+    --->Taken From sci-kit learn documentation to help set_threshold_roc_curve
 
     Args:
         arr : array-like
@@ -131,8 +136,8 @@ def stable_cumsum(arr, rtol=1e-05, atol=1e-08):
 def set_threshold_roc_curve(y_true, y_score, pos_label=None, sample_weight=None,
               drop_intermediate=True):
     """
-    Taken from sci-kit learn documentation
-    Altered to give a constant amount of thresholds for the roc curve
+    --->Taken from sci-kit learn documentation
+    Altered to give a constant amount of thresholds for the roc curve<---
 
     y_true : array, shape = [n_samples]
         True binary labels in range {0, 1} or {-1, 1}.  If labels are not
@@ -189,9 +194,9 @@ def set_threshold_roc_curve(y_true, y_score, pos_label=None, sample_weight=None,
 
 def _binary_clf_curve(y_true, y_score, pos_label=None, sample_weight=None):
     """
-    Taken from sci-kit learn documentation to help set_threshold_roc_curve()
+    --->Taken from sci-kit learn documentation to help set_threshold_roc_curve()
     Altered to return a constant amount of thrsholds for each roc curve
-    Calculate true and false positives per binary classification threshold.
+    Calculate true and false positives per binary classification threshold.<---
 
     Parameters
     ----------
