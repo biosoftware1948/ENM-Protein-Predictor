@@ -10,10 +10,10 @@ normalized, and a ratio was created giving a NSAF value representing the enrichm
 With this enrichment factor, databases were mined for protein characteristics, and this information was used to predict if a given protein
 and nanomaterial pair will bind
 <h2> How to use </h2>
-<p>To run the pipeline and reproduce the results call estimator.py <amount of runs> <output file>. This
-will output the statistics and feature importances to the <output file> in JSON format. This will also
+<p>To run the pipeline and reproduce the results call estimator.py "amount of runs" "output file" (2 command line arguments). This
+will output the statistics and feature importances to the "output file" in JSON format. This will also
 output all the classification information to a csv file. To see the statistics and feature importances
-in a readable format call statistic_parser.py <output_file> and the results will be printed to the
+in a readable format call statistic_parser.py "output_file" and the results will be printed to the
 command line.</p>
 <h3> python files </h3>
 <h5> estimator.py </h5>
