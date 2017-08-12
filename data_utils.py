@@ -1,22 +1,7 @@
-"""
-This Module deals with data fetching and cleaning.
-It includes:
-    class binary_column_mask:
-        helps us apply a binary column mask from recursive feature elimination
-        and cross validation. In other words it easily removes columns specified
-        from RFECV.
+"""Developed by: Matthew Findlay 2017
 
-    class data_base:
-        Grabs data from the csv database. Cleans and splist the data to be used
-        along all points in the pipeline
-
-    Functions:
-        1) classify: classifies continous data
-        2) fill_nan: this fills nan values in a column with the meaningless
-        3) one_hot_encode: converts categorical data to one hot vectors
-        4) clean_print: Prints data in a clean format
-        5) fetch_data: Specific for our dataset, pre-processes ENM data
-        and splits it accordingly
+This Module contains the database class that handles all of the data gathering
+and cleaning. It also contains functions that help us work with our data.
 """
 import os
 import pandas as pd
@@ -25,6 +10,7 @@ import sklearn
 from sklearn import preprocessing, cross_validation, model_selection
 import random
 import csv
+import sys
 
 
 def apply_RFECV_mask(mask, *args):
@@ -82,9 +68,11 @@ class data_base(object):
         """
 
     _ENRICHMENT_SPLIT_VALUE = 1 #enrichment threshold to classify as bound or unbound
-    _DATABASE_PATH = 'Input_Files/database.csv'
+    categorical_data = ['Enzyme Commission Number', 'Particle Size', 'Particle Charge', 'Solvent Cysteine Concentration', 'Solvent NaCl Concentration']
+    columns_to_drop = ['Protein Length', 'Sequence', 'Enrichment', 'Accesion Number']
+
     def __init__(self):
-        self._raw_data = self.fetch_raw_data(self._DATABASE_PATH)
+        self._raw_data = None
         self._clean_X_data = None
         self._Y_enrichment = None
         self._target = None
@@ -94,7 +82,34 @@ class data_base(object):
         self._Y_test = None
         self._test_accesion_numbers = None
 
-    def fetch_raw_data(self, enm_database):
+    def clean_raw_data(self):
+        self.clean_X_data = self.raw_data
+        #Categorize Interprot identifiers n hot encoding
+        self.clean_X_data = multi_label_encode(self.clean_X_data, 'Interprot')
+        #one hot encode categorical data
+        for category in self.categorical_data:
+            self.clean_X_data = one_hot_encode(self.clean_X_data, category)
+
+        #Grab some useful data before dropping from independant variables
+        self.Y_enrichment = self.clean_X_data['Enrichment']
+        accesion_numbers = self.clean_X_data['Accesion Number']
+
+        for column in self.columns_to_drop:
+            self.clean_X_data = self.clean_X_data.drop(column, 1)
+
+        self.clean_X_data = fill_nan(self.clean_X_data, 'Protein Abundance')
+        self.clean_X_data = normalize_and_reshape(self.clean_X_data, accesion_numbers)
+        self._target = classify(self.Y_enrichment, self._ENRICHMENT_SPLIT_VALUE) #enrichment or nsaf
+
+    def stratified_data_split(self, test_size=0.0):
+        assert test_size <= 1.0 and test_size >= 0.0, "test_size must be between 0 and 1"
+        self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data, self.target, test_size = test_size, random_state=int((random.random()*100)))
+        self.test_accesion_numbers = self.X_test['Accesion Number']
+        self.X_train = self.X_train.drop('Accesion Number', 1)
+        self.X_test = self.X_test.drop('Accesion Number', 1)
+
+    @staticmethod
+    def fetch_raw_data(enm_database):
         assert os.path.isfile(enm_database), "please pass a string specifying database location"
 
         dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -102,98 +117,77 @@ class data_base(object):
         try:
             raw_data = pd.read_csv(enm_database)
         except:
-            print "Error Fetching CSV Data"
+            raise ValueError("File is not a valid csv")
 
         return raw_data
 
-    def clean_data(self):
-        self.clean_X_data = self.raw_data
-        #Categorize Interprot identifiers n hot encoding
-        self.clean_X_data = multi_label_encode(self.clean_X_data, 'Interprot')
-        #one hot encode categorical data
-        self.clean_X_data = one_hot_encode(self.clean_X_data, 'Enzyme Commission Number')
-        self.clean_X_data = one_hot_encode(self.clean_X_data, 'particle_size')
-        self.clean_X_data = one_hot_encode(self.clean_X_data, 'particle_charge')
-        self.clean_X_data = one_hot_encode(self.clean_X_data, 'solvent_cys')
-        self.clean_X_data = one_hot_encode(self.clean_X_data, 'solvent_salt')
-        #Get enrichment data
-        self.Y_enrichment = self.clean_X_data['Enrichment']
-        #Drop useless columns
-        accesion_numbers = self.clean_X_data['Accesion Number']
-        self.clean_X_data = self.clean_X_data.drop('Accesion Number', 1)
-        self.clean_X_data = self.clean_X_data.drop(['Enrichment'], 1)
-        self.clean_X_data = self.clean_X_data.drop('Sequence', 1)
-        self.clean_X_data = self.clean_X_data.drop('Protein Length', 1)
-        #Fill integer values resulting from failed query
-        self.clean_X_data = fill_nan(self.clean_X_data, 'Protein Abundance')
-        #Normalize and reshape
-        norm_df = preprocessing.MinMaxScaler().fit_transform(self.clean_X_data)
-        self.clean_X_data = pd.DataFrame(norm_df,columns=list(self.clean_X_data))
-        self.clean_X_data = pd.concat([accesion_numbers, self.clean_X_data], axis=1)
-        self.clean_X_data.reset_index(drop=True, inplace=True)
-        #classify Enrichment values
-        self._target = classify(self.Y_enrichment, self._ENRICHMENT_SPLIT_VALUE) #enrichment or nsaf
-        #Split data into training and testing sets, if test_size is 0 data
-        #will be shuffled randomly (GOOD)
-
-    def split_data(self, test_size=0.0):
-        assert test_size <= 1.0 and test_size >= 0.0, "test_size must be between 0 and 1"
-        self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data, self.target, stratify=self.target, test_size = test_size, random_state=int((random.random()*100)))
-        self.test_accesion_numbers = self.X_test['Accesion Number']
-        self.X_train = self.X_train.drop('Accesion Number', 1)
-        self.X_test = self.X_test.drop('Accesion Number', 1)
-
-    def _fetch_from_excel(self, data, excel_path):
-        assert os.path.isfile(excel_path), "please pass a string specifying database location"
-
-        dir_path = os.path.dirname(os.path.realpath(__file__))
-        excel_path = os.path.join(dir_path, excel_path)
-        try:
-            data = pd.read_csv(excel_path)
-        except:
-            print "Error Fetching CSV Data"
-
     @property
     def X_train(self):
-        return self._X_train
+        if self._X_train is None:
+            raise ValueError("Initialize X_train by calling stratified_data_split()")
+        else:
+            return self._X_train
 
     @property
     def X_test(self):
-        return self._X_test
+        if self._X_test is None:
+            raise ValueError("Initialize X_test by calling stratified_data_split()")
+        else:
+            return self._X_test
 
     @property
     def Y_train(self):
-        return self._Y_train
+        if self._Y_train is None:
+            raise ValueError("Initialize Y_train by calling stratified_data_split()")
+        else:
+            return self._Y_train
 
     @property
     def Y_test(self):
-        return self._Y_test
+        if self._Y_test is None:
+            raise ValueError("Initialize Y_train by calling stratified_data_split()")
+        else:
+            return self._Y_test
 
     @property
     def raw_data(self):
+        if self._raw_data is None:
+            raise ValueError("Initialize raw data by setting raw_data=<path.csv>")
         return self._raw_data
 
     @property
     def clean_X_data(self):
-        return self._clean_X_data
+        if self._clean_X_data is None:
+            raise ValueError("Initialize clean_X_data by calling clean_data()")
+        else:
+            return self._clean_X_data
 
     @property
     def Y_enrichment(self):
-        return self._Y_enrichment
+        if self._Y_enrichment is None:
+            raise ValueError("Initialize Y_enrichment by calling clean_data()")
+        else:
+            return self._Y_enrichment
 
     @property
     def target(self):
-        return self._target
+        if self._target is None:
+            raise ValueError("Initialize target by calling clean_data()")
+        else:
+            return self._target
 
     @property
     def test_accesion_numbers(self):
-        return self._test_accesion_numbers
+        if self._test_accesion_numbers is None:
+            raise ValueError("Initialize test_accesion_numbers by calling stratified_data_spli()t")
+        else:
+            return self._test_accesion_numbers
 
     @X_train.setter
     def X_train(self, path):
         if (isinstance(path, str) and os.path.isfile(path)):
             #If trying to set to value from excel
-            self._fetch_from_excel(self._X_train, excel_path)
+            self._X_train = fetch_raw_data(path)
         else:
             #If trying to set to already imported array
             self._X_train = path
@@ -202,7 +196,7 @@ class data_base(object):
     def X_test(self, path):
         if (isinstance(path, str) and os.path.isfile(path)):
             #If trying to set to value from excel
-            self._fetch_from_excel(self._X_test, excel_path)
+            self._X_test = fetch_raw_data(path)
         else:
             #If trying to set to already imported array
             self._X_test = path
@@ -211,7 +205,7 @@ class data_base(object):
     def Y_train(self, path):
         if (isinstance(path, str) and os.path.isfile(path)):
             #If trying to set to value from excel
-            self._fetch_from_excel(self._Y_train, excel_path)
+            self._Y_train = fetch_raw_data(path)
         else:
             #If trying to set to already imported array
             self._Y_train = path
@@ -220,14 +214,14 @@ class data_base(object):
     def Y_test(self, path):
         if (isinstance(path, str) and os.path.isfile(path)):
             #If trying to set to value from excel
-            self._fetch_from_excel(self._Y_test, excel_path)
+            self._Y_test = fetch_raw_data(path)
         else:
             #If trying to set to already imported array
             self._Y_test = path
 
     @raw_data.setter
     def raw_data(self, enm_database):
-        if (isinstance(enm_database, str) and os.path.isfile(path)):
+        if (isinstance(enm_database, str) and os.path.isfile(enm_database)):
             self._raw_data = self.fetch_raw_data(enm_database)
         else:
             self._raw_data = enm_database
@@ -236,7 +230,7 @@ class data_base(object):
     def clean_X_data(self, path):
         if (isinstance(path, str) and os.path.isfile(path)):
             #If trying to set to value from excel
-            self._fetch_from_excel(self._clean_X_data, excel_path)
+            self.clean_X_data = fetch_raw_data(path)
         else:
             #If trying to set to already imported array
             self._clean_X_data = path
@@ -245,7 +239,7 @@ class data_base(object):
     def Y_enrichment(self, path):
         if (isinstance(path, str) and os.path.isfile(path)):
             #If trying to set to value from excel
-            self._fetch_from_excel(self.Y_enrichment, excel_path)
+            self._Y_enrichment = fetch_raw_data(path)
         else:
             #If trying to set to already imported array
             self._Y_enrichment = path
@@ -254,14 +248,17 @@ class data_base(object):
     def test_accesion_numbers(self, path):
         if (isinstance(path, str) and os.path.isfile(path)):
             #If trying to set to value from excel
-            self._fetch_from_excel(self._test_accesion_numbers, excel_path)
+            self._Y_enrichment = fetch_raw_data(path)
         else:
             #If trying to set to already imported array
             self._test_accesion_numbers = path
 
-    @classmethod
-    def enrichment_split_value(cls):
-        return cls._ENRICHMENT_SPLIT_VALUE
+def normalize_and_reshape(data, labels):
+    norm_df = preprocessing.MinMaxScaler().fit_transform(data)
+    data = pd.DataFrame(norm_df,columns=list(data))
+    data = pd.concat([labels, data], axis=1)
+    data.reset_index(drop=True, inplace=True)
+    return data
 
 def classify(data, cutoff):
     """
@@ -413,10 +410,18 @@ def to_excel(classification_information):
             None
         """
 
-    with open('stratified_prediction_probability.csv', 'w') as file:
+    with open('prediction_probability.csv', 'w') as file:
         file.write('Protein Accesion Number, Particle Type, Solvent Conditions, True Bound Value, Predicted Bound Value, Predicted Probability of Being Bound, Properly Classified\n')
 
-        for pred, true_val, protein, particle_s, particle_c, cys, salt8, salt3, in zip(classification_information['all_predict_proba'],classification_information['all_true_results'],classification_information['all_accesion_numbers'],classification_information['all_particle_information'][0],classification_information['all_particle_information'][1],classification_information['all_solvent_information'][0],classification_information['all_solvent_information'][1],classification_information['all_solvent_information'][2]):
+        for pred, true_val, protein, particle_s, particle_c, cys, salt8, salt3, in zip(classification_information['all_predict_proba'],
+                                                                                       classification_information['all_true_results'],
+                                                                                       classification_information['all_accesion_numbers'],
+                                                                                       classification_information['all_particle_information'][0],
+                                                                                       classification_information['all_particle_information'][1],
+                                                                                       classification_information['all_solvent_information'][0],
+                                                                                       classification_information['all_solvent_information'][1],
+                                                                                       classification_information['all_solvent_information'][2]
+                                                                                       ):
             bound = 'no'
             predicted_bound = 'no'
             properly_classified = 'no'
@@ -447,8 +452,26 @@ def to_excel(classification_information):
             if (salt3 == 1):
                 solvent = '10 mM NaPi pH 7.4 + 3.0 mM NaCl'
 
-
             file.write('{}, {}, {}, {}, {}, {}, {}\n'.format(protein, particle, solvent, bound, predicted_bound,round(pred, 2), properly_classified))
+
+def hold_in_memory(classification_information, metrics, i):
+    #Set constants for array indexs
+    ITERATIONS = i
+    TEST_SIZE = 302 #10% of training data is used for testing 10% of 3012=302
+    PARTICLE_SIZE = 0
+    PARTICLE_CHARGE = 1
+    SOLVENT_CYS = 0
+    SOLVENT_SALT_08 = 1
+    SOLVENT_SALT_3 = 2
+    #Information is placed into numpy arrays as blocks
+    classification_information['all_predict_proba'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[0]
+    classification_information['all_true_results'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[1]
+    classification_information['all_accesion_numbers'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[2]
+    classification_information['all_particle_information'][PARTICLE_CHARGE][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Particle Charge_1']
+    classification_information['all_particle_information'][PARTICLE_SIZE][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Particle Size_10']
+    classification_information['all_solvent_information'][SOLVENT_CYS][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Solvent Cysteine Concentration_0.1']
+    classification_information['all_solvent_information'][SOLVENT_SALT_08][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Solvent NaCl Concentration_0.8']
+    classification_information['all_solvent_information'][SOLVENT_SALT_3][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Solvent NaCl Concentration_3.0']
 
 if __name__ == "__main__":
     db = data_base()

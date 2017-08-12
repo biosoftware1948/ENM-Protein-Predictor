@@ -1,20 +1,16 @@
-"""This module contains the overloaded RandomForestClassifier and method to help
-us with feature engineering and model optimization
+"""Developed by: Matthew Findlay 2017
 
-Includes:
-    Class RandomForestClassifierWithCoef:
-        Overloaded sklearn random forest classifier with feature importances as
-        coef_
+This module contains the overloaded RandomForestClassifier and methods to help
+us with feature engineering and model optimization.
 
-    Functions:
-        1) optimize: makes it easy to optimize our hyperparameters
-        2) recursive_feature_elimination: recursive feature elimination
-        with 5 fold cross validation
 """
+
 import os
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import RFECV
 from sklearn.grid_search import GridSearchCV
+import sklearn
+import numpy as np
 
 class RandomForestClassifierWithCoef(RandomForestClassifier):
     """Adds feature weights for each returned variable from the
@@ -74,7 +70,7 @@ def recursive_feature_elimination(model, X_train, Y_train, mask_file):
     dir_path = os.path.dirname(os.path.realpath(__file__))
     mask_file = os.path.join(dir_path, mask_file)
 
-    selector = RFECV(estimator=model, step=1, cv=5, scoring='f1', verbose=1)
+    selector = RFECV(estimator=model, step=1, cv=10, scoring='f1', verbose=1)
     selector = selector.fit(X_train, Y_train)
     print "selector support: \n {} \n selector ranking: \n {}".format(selector.support_, selector.ranking_)
     print "Optimal number of features: \n {} \n Selector grid scores: \n {} \n".format(selector.n_features_, selector.grid_scores_)

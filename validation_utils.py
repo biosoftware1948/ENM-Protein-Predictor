@@ -1,27 +1,14 @@
-"""
+"""Developed by: Matthew Findlay 2017
+
 This module includes a class with several validation metrics and helper
 functions for those validation metrics.
-class validation metrics includes:
-    1) youden_index: calculates the youden index for all thresholds and
-    graphs it
-    2)roc_curve: generates a roc curve
-    3) well_rounded_validation: returns auroc, recall, precision, f1-score,
-    accuracy, and a confusion matrix
-
-helper functions include:
-    1) stable_cumsum: returns the cumsum of array if stable_cumsum
-    2)set_threshold_roc_curve: returns true positive and false positive rates
-    along with thresholds. thresholds are constant everytime, i.e. the maximum
-    amount of thresholds is always returned
-    3) _binary_clf_curve: helps set_threshold_roc_curve
-
 """
 import data_utils
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import math
-import visualization_tools
+import visualization_utils
 import sklearn
 
 class validation_metrics(object):
@@ -60,7 +47,7 @@ class validation_metrics(object):
         for i in range(0, len(thresholds)):
             youden_index_values[i] = ((tpr[i]+(1-fpr[i])-1))/(math.sqrt(2))
 
-        visualization_tools.visualize_data.youden_index_plot(thresholds, youden_index_values)
+        visualization_utils.visualize_data.youden_index_plot(thresholds, youden_index_values)
 
         return youden_index_values
     def roc_curve(self):
@@ -77,7 +64,7 @@ class validation_metrics(object):
         roc = sklearn.metrics.roc_auc_score(self.true_results, self.predicted_results)
         fpr, tpr, thresholds = set_threshold_roc_curve(self.true_results, self.predicted_results, pos_label=1, drop_intermediate=True)
 
-        visualization_tools.visualize_data.roc_plot(roc, fpr, tpr, thresholds)
+        visualization_utils.visualize_data.roc_plot(roc, fpr, tpr, thresholds)
 
     def well_rounded_validation(self):
         """Calculates the AUROC, Recall, Precision, F1 Score, Accuracy, and
@@ -106,6 +93,14 @@ class validation_metrics(object):
                 "Accuracy" : sklearn.metrics.accuracy_score(self.true_results, classified_predictions),
                 "Confusion Matrix" : [conf_matrix[0][0], conf_matrix[0][1], conf_matrix[1][0], conf_matrix[1][1]]
                 }
+                
+def y_randomization_test(est, db):
+    with open('y_randomization.csv', 'w') as f:
+        f.write(' , Accuracy, AUROC, F1-Score, Precision, Recall\n')
+        for i in range(0,50):
+            probability_prediction = est.predict_proba(db.X_test)[:,1]
+            f.write('Randomized {} times, {}, {}, {}, {}, {} \n'.format(i,sklearn.metrics.accuracy_score(db.Y_test, data_utils.classify(probability_prediction, 0.5)),sklearn.metrics.roc_auc_score(db.Y_test, data_utils.classify(probability_prediction, 0.5)),sklearn.metrics.f1_score(db.Y_test, data_utils.classify(probability_prediction, 0.5)),sklearn.metrics.precision_score(db.Y_test, data_utils.classify(probability_prediction, 0.5)),sklearn.metrics.recall_score(db.Y_test, data_utils.classify(probability_prediction, 0.5))))
+            np.random.shuffle(db.Y_test)
 
 #***HELPER FUNCTIONS***#
 def stable_cumsum(arr, rtol=1e-05, atol=1e-08):

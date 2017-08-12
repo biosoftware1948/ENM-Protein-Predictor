@@ -1,3 +1,9 @@
+"""Developed by: Matthew Findlay 2017
+
+This module parses the JSON output from the estimator script and prints it
+in readable format to the command line.
+"""
+
 import data_utils
 import numpy as np
 import json
@@ -41,19 +47,23 @@ for key, value in average_importances.items():
     average_importances[key] = value/runs
 #Print
 print "#########VALUES########"
+print "\n~Performance Metrics~"
 data_utils.clean_print(average_metrics)
+print "\n~Feature Importances~"
 sorted_imports = sorted(average_importances.items(), key=operator.itemgetter(1))
 for tup in reversed(sorted_imports):
     print "{}: {}".format(tup[0], tup[1])
 
 #get std results for metrics
 print "\n########STD VALUES#######"
+print "\n~Performance Metrics~"
 for key, arr in std_metrics.items():
     arr = np.std(np.array(arr))
     std_metrics[key] = arr
 for key, arr in std_metrics.items():
     print "{}: {}".format(key, arr)
 #GEt std results for importances
+print "\n~Feature Importances~"
 for key, arr in std_importances.items():
     arr = np.std(np.array(arr))
     std_importances[key] = arr

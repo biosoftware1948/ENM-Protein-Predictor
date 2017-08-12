@@ -2,6 +2,8 @@
 Matthew Findlay
 Santa Clara University
 Dr. Wheeler's Lab
+Undergraduate student dept Bioengineering
+2017
 
 This Script predicts if proteins will be found in the protein corona on the surface of Engineered Nanomaterials.
 To achieve this we first experimentally isolate proteins that bind and do not bind to engineered nanomaterials
@@ -14,68 +16,68 @@ We validate our classifications with several statistical methods including ROC c
 
 import data_utils
 import numpy as np
-import visualization_tools
+import visualization_utils
 import predictor_utils
-import validator
+import validation_utils
 import sys
 import json
 import numpy as np
+import os
 
-def main(db):
-    #Clean data
-    db.split_data(0.1)
+def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
+    """
+    Runs the pipeline. Trains and evaluates the estimator, outputs metrics and
+    information about the model performance.
+
+    Args:
+        :param db (database obj): The database object, passed from main.
+        Information about this class can be found in data_utils
+        :param optimize (bool): Set to true to run Grid search
+        :param RFECV (bool): Set to true to run RFECV
+    Returns:
+        :val.well_rounded_validation() (dict): returns a dictionary of validation metrics
+        :feature_importances (dict): contains a dictionary of feature importances
+        :classification_information (dict): information about the predictions
+    """
+    db.stratified_data_split(test_percentage)
     db.X_train, db.X_test= data_utils.apply_RFECV_mask('Input_Files/_mask.txt', db.X_train, db.X_test)
-    """
-    Overloaded Random Forest Classifier with coefficients
-    to use for recursive feature elimination and cross validation
-    """
+    #overloaded RandomForestClassifier with coef
     est = predictor_utils.RandomForestClassifierWithCoef(
-                                 n_estimators=1000,             #number of trees used by the algorithm
-                                 bootstrap=True,
-                                 oob_score=True,               #Out of box score
-                                 max_features='auto',          #features at each split (auto=all)
-                                 max_depth=None,               #max tree depth
-                                 min_samples_split=4,          #minimum amount of samples to split a node
-                                 min_samples_leaf=1,           #minimum amount of samples a leaf can contain
-                                 min_weight_fraction_leaf=0,   #minimum weight fraction of samples in a leaf
-                                 max_leaf_nodes=None,          #maximum amount of leaf nodes
-                                 n_jobs=-1,                    #CPU Cores used (-1 uses all)
-                                 random_state=data_utils.random.randint(1, 2**8)  #Initialize random seed generator
-                                 )
-
-    #predictor_utils.optimize(est, db.X_train, db.Y_train)
-    #predictor_utils.recursive_feature_elimination(est, db.X_train, db.Y_train, 'tst.txt')
+                            n_estimators=1000,
+                            bootstrap=True,
+                            min_samples_split=4,
+                            n_jobs=-1,
+                            random_state=data_utils.random.randint(1, 2**8)
+                            )
+    if optimize:
+        predictor_utils.optimize(est, db.X_train, db.Y_train)
+        sys.exit(0)
+    if RFECV:
+        predictor_utils.recursive_feature_elimination(est, db.X_train, db.Y_train, 'tst.txt')
+        sys.exit(0)
 
     est.fit(db.X_train, db.Y_train)
-
     probability_prediction = est.predict_proba(db.X_test)[:,1]
-    #probability_prediction_train = est.predict_proba(db.X_train)[:,1]
-    val = validator.validation_metrics(db.Y_test, probability_prediction)
-    #val_train =validator.validation_metrics(db.Y_train, probability_prediction_train)
-    #print val_train.well_rounded_validation()
+
+    #validator.y_randomization_test(est, db)
+    val = validation_utils.validation_metrics(db.Y_test, probability_prediction)
     classification_information = (probability_prediction, db.Y_test, db.test_accesion_numbers, db.X_test)
+    feature_importances = dict(zip(list(db.X_train), est.feature_importances_))
     #Remove comments to visualize validation metrics
     #val.youden_index()
     #val.roc_curve()
-    return val.well_rounded_validation(), dict(zip(list(db.X_train), est.feature_importances_)), classification_information
+    return val.well_rounded_validation(), feature_importances, classification_information
 
 if __name__ == '__main__':
     assert len(sys.argv) == 3, "First command line argument is the amount of times to run the model, second command line argument is output file for json results"
     iterations = int(sys.argv[1])
     output_file = sys.argv[2]
-
     #Set constants for array indexs
     TEST_SIZE = 302 #10% of training data is used for testing 10% of 3012=302
     TOTAL_TESTED_PROTEINS = TEST_SIZE*iterations
     SCORES = 0
     IMPORTANCES = 1
     INFORMATION = 2
-    PARTICLE_SIZE = 0
-    PARTICLE_CHARGE = 1
-    SOLVENT_CYS = 0
-    SOLVENT_SALT_08 = 1
-    SOLVENT_SALT_3 = 2
-
     results = {}
     #Information about classified particle protein pairs
     classification_information = {'all_predict_proba' : np.empty([TOTAL_TESTED_PROTEINS], dtype=float),
@@ -84,30 +86,23 @@ if __name__ == '__main__':
                                   'all_particle_information' : np.empty([2, TOTAL_TESTED_PROTEINS], dtype=int),
                                   'all_solvent_information' : np.empty([3, TOTAL_TESTED_PROTEINS], dtype=int)
                                   }
-
+    #Initialize database
     db = data_utils.data_base()
-    db.clean_data()
-
+    db.raw_data = "Input_Files/database.csv"
+    db.clean_raw_data()
+    #Run the model multiple times and store results
     for i in range(0, iterations):
         print "Run Number: {}".format(i)
-        metrics = main(db)
+        metrics = pipeline(db)
         #hold scores and importance data in json format
         results["Run_" + str(i)] = {'scores': metrics[SCORES], 'importances': metrics[IMPORTANCES]}
         #hold classification information in arrays to output to excel file
-        #Information is placed into numpy arrays as blocks for efficiency
-        classification_information['all_predict_proba'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[INFORMATION][0]
-        classification_information['all_true_results'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[INFORMATION][1]
-        classification_information['all_accesion_numbers'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[INFORMATION][2]
-        classification_information['all_particle_information'][PARTICLE_CHARGE][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[INFORMATION][3]['particle_charge_1']
-        classification_information['all_particle_information'][PARTICLE_SIZE][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[INFORMATION][3]['particle_size_10']
-        classification_information['all_solvent_information'][SOLVENT_CYS][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[INFORMATION][3]['solvent_cys_0.1']
-        classification_information['all_solvent_information'][SOLVENT_SALT_08][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[INFORMATION][3]['solvent_salt_0.8']
-        classification_information['all_solvent_information'][SOLVENT_SALT_3][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[INFORMATION][3]['solvent_salt_3.0']
-
+        data_utils.hold_in_memory(classification_information, metrics[INFORMATION], i)
 
     #dump the statistic results as json
     with open(output_file, 'w') as f:
         json.dump(results, f)
-
     #Pass classification information to be inserted into excel document
     data_utils.to_excel(classification_information)
+    #Run statistic parser
+    os.system('python statistic_parser.py {}'.format(output_file))

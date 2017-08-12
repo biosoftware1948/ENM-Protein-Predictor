@@ -1,0 +1,4 @@
+pandas==0.18.1
+numpy==1.13.1
+matplotlib==1.5.1
+scikit_learn==0.19b2

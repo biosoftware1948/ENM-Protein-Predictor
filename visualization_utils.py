@@ -1,32 +1,11 @@
-""" This module contains all visualization tools used
+""" Developed by: Matthew Findlay 2017
 
-Contains:
-    Class visualize_data: Container for our visualization tools
-
-    Functions:
-        1) interactive_3d_plot: Generates a 3d plot of data that can be spun around
-        for analysis
-
-        2) continous_data_distribution: Generates histograms of data
-
-        3) continous_distribution_by_particle: hard coded for our dataset,
-        visualizes the histogram of all our particles
-
-        4) scatterplot: Produces a scatter plot of speicifed data
-
-        5) discrete_data_distribution: visualizes class imbalance
-
-        6) autolabel: helper to label the axis of graphs above bars
-
-        7) roc_plot: Generates a roc plot , called in validation metrics
-
-        8) youden_index_plot: generates a plot of youden index vs thresholds
+This module contains all the visualization tools used to analyze our data.
 """
 
 from __future__ import division
 import data_utils
 import matplotlib.pyplot as plt
-import seaborn as sns
 import pandas as pd
 import numpy as np
 import math
@@ -291,26 +270,7 @@ class visualize_data(object):
         plt.show()
 
     def correlation_plot(self):
-        """
-        sns.set(style="white")
 
-
-        mask = np.zeros_like(corr, dtype=np.bool)
-        mask[np.triu_indices_from(mask)] = True
-
-        f, ax = plt.subplots(figsize=(11,9))
-        cmap = sns.diverging_palette(220, 10, as_cmap=True)
-        print "workfegggg"
-        sns.heatmap(corr, mask=mask, cmap=cmap, vmax=.3, center=0,
-        square=True, linewidths=0.5, cbar_kws={"shrink": .5})
-
-        plt.show()
-
-        corr = self.data.iloc[:,:4].corr()
-        print corr
-        plt.matshow(corr);
-        plt.colorbar()
-        plt.show()"""
         corr = self.data.iloc[:,:8].corr()
         f, ax = plt.subplots(figsize=(11,9))
         ax.grid(False)
@@ -319,14 +279,15 @@ class visualize_data(object):
 
         plt.imshow(corr, cmap='RdYlGn', interpolation='none', aspect='auto', vmin=-1, vmax=1)
         plt.colorbar(ticks = (-1.0, -0.5, 0, 0.5, 1))
-        plt.xticks(range(len(corr)), corr.columns, rotation='vertical', fontsize=18)
-        plt.yticks(range(len(corr)), corr.columns, fontsize=18);
-        plt.suptitle('Correlation plot of protein features', fontsize=22, fontweight='bold')
+        plt.xticks(range(len(corr)), corr.columns, rotation='vertical', fontsize=20)
+        plt.yticks(range(len(corr)), corr.columns, fontsize=20);
+        #plt.suptitle('Correlation plot of protein features', fontsize=22, fontweight='bold')
+        plt.tight_layout()
         plt.show()
 
 
 if __name__ == "__main__":
     db = data_utils.data_base()
     db.clean_data()
-    v = visualize_data(db.X_train, db.Y_enrichment)
+    v = visualize_data(db.clean_X_data, db.Y_enrichment)
     v.correlation_plot()
