@@ -2,9 +2,7 @@
 
 This module contains the overloaded RandomForestClassifier and methods to help
 us with feature engineering and model optimization.
-
 """
-
 import os
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import RFECV
@@ -44,8 +42,8 @@ def optimize(model, X_train, Y_train):
         'max_depth': [None],
         #'min_samples_split': [5, 10, 15, 20, 50], #results from first run was 5
         'min_samples_split' : [2,3,4,5,6,7,8,9],
-        #'min_samples_leaf': [1, 5, 15, 20, 50],
-        'min_samples_leaf' : [1], #min_samples_leaf isn't necessary when using min_samples_split
+        #'min_samples_leaf': [1, 5, 15, 20, 50], # results from first run was 1
+        'min_samples_leaf' : [1], #min_samples_leaf isn't necessary when using min_samples_split anyways
         'n_jobs': [-1],
     }
     #5 fold validation
@@ -54,15 +52,14 @@ def optimize(model, X_train, Y_train):
     print "Best parameters: \n {}".format(CV_est.best_params_)
 
 def recursive_feature_elimination(model, X_train, Y_train, mask_file):
-    """Runs RFECV with 5 folds, prints optimum features
-    useful for feature engineering
+    """Runs RFECV with 5 folds, stores optimum features
+    useful for feature engineering in a text file as a binary mask
 
     Args:
         :param model (obj): The sklean model you wish to optimize
         :param X_train (array): The X values of training data
         :param Y_train (array): The Y values of the training data
         :param mask_file (string): Path to a textfile to write binary mask
-
     Returns:
         None
     """

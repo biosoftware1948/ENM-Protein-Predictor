@@ -1,41 +1,7 @@
 *.pyc
 
-Predicted.csv
-
-FeatureWeights.csv
-
-Predicted.csv
-
-Best_REsults.txt
-
-out.json
-
-multi_run_eval.py
-
-Results.txt
-
-RFECV_results.py
-
-RFECV.csv
-
-RFECV.xlsx
-
-result.csv
-
-json_read.py
+env
 
 discrt.py
 
-10tree.json
-
-nosolvout.json
-
-nocysout.json
-
-train.csv
-
 Predict.py
-
-train.csv
-
-class_result.csv

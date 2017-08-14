@@ -1,5 +1,6 @@
 <h1> This Script Predicts Interactions between engineered nanomaterials and proteins under relevant biological conditions </h1>
 <p> This is funded undergraduate research from the Dr. Wheeler lab at Santa Clara University </p>
+<p> Written by Matthew Findlay 2017 <p>
 <h2> Implementation </h2>
 <p> This script uses a random forest classifier to make predictions <p>
 <h2> Data </h2>
@@ -9,38 +10,42 @@ mined from online databases to find the length of the proteins. The spectral cou
 normalized, and a ratio was created giving a NSAF value representing the enrichment of specific proteins onto the surface of nanomaterials.
 With this enrichment factor, databases were mined for protein characteristics, and this information was used to predict if a given protein
 and nanomaterial pair will bind
-<h2> How to use <h2>
-<p>To run the pipeline and reproduce the results call estimator.py <amount of runs> <output file>. This
-will output the statistics and feature importances to the <output file> in JSON format. This will also
+<h2> How to use </h2>
+<p>To run the pipeline and reproduce the results call estimator.py "amount of runs" "output file" (2 command line arguments). This
+will output the statistics and feature importances to the "output file" in JSON format. This will also
 output all the classification information to a csv file. To see the statistics and feature importances
-in a readable format call statistic_parser.py <output_file> and the results will be printed to the
-command line.<p>
-<h3> python files <h3>
-<h5> estimator.py <h5>
+in a readable format call statistic_parser.py "output_file" and the results will be printed to the
+command line.</p>
+<h2> Predicting your own data</h2>
+<p> To make predictions of your own data go to the main function in estimator.py. Set db.predict = "your_csv_path". This will use our data to make predictions on yours. A csv file will be outputted
+with easily interpretable results. Be weary of predictions that fall within the 0.4-0.6 probability range
+as these are considered unreliable </p>
+<h3> python files </h3>
+<h5> estimator.py </h5>
 <p> contains main(). Runs the estimator and includes lines to run recursive feature elimination
-or grid search.<p>
-<h5> predictor_utils.py <5>
-<p>contains tools to build and optimize the estimator.<p>
-<h5> visualization_tools.py <h5>
-<p>Contains some fun functions to help us visualize the ENM data <p>
-<h5> validator.py <h5>
-<p> Contains functions and classes that make it easy to validate the model performance <p>
-<h5>statistic_parser.py<h5>
-<p> parses the model JSON output and prints it in readable format to the command line <p>
-<h5> Input Files <h5>
-<h3>database.csv<h3>
-<p> contains the database <p>
-<h3>mask.txt<h3>
+or grid search.</p>
+<h5> predictor_utils.py </h5>
+<p>contains tools to build and optimize the estimator.</p>
+<h5> visualization_tools.py </h5>
+<p>Contains some fun functions to help us visualize the ENM data </p>
+<h5> validator.py </h5>
+<p> Contains functions and classes that make it easy to validate the model performance </p>
+<h5>statistic_parser.py</h5>
+<p> parses the model JSON output and prints it in readable format to the command line </p>
+<h5> Input Files </h5>
+<h3>database.csv</h3>
+<p> contains the database </p>
+<h3>mask.txt</h3>
 <p> a boolean mask produced by recursive feature elimination and cross validation.
-This mask is applied to the database to produce an optimal amount of features <p>
-<h5> Output Files <h5>
-<h3> final.json <h3>
-<p>non stratified results from running the model 50x<p>
-<h3>stratified_final.json<h3>
-<p>stratified results from running the model 50x<p>
-<h3>prediction_probability.csv<h3>
-<p>contains an excel file with information about predictions<p>
-<h3>stratified_prediction_probability.csv<h3>
-<p>contains an excel file with information about stratified predictions<p>
-<h3> y_randomization.csv<h3>
-<p>results from the y_randomization_test<p>
+This mask is applied to the database to produce an optimal amount of features </p>
+<h5> Output Files </h5>
+<h3> final.json </h3>
+<p>non stratified results from running the model 50x</p>
+<h3>stratified_final.json</h3>
+<p>stratified results from running the model 50x</p>
+<h3>prediction_probability.csv</h3>
+<p>contains an excel file with information about predictions</p>
+<h3>stratified_prediction_probability.csv</h3>
+<p>contains an excel file with information about stratified predictions</p>
+<h3> y_randomization.csv</h3>
+<p>results from the y_randomization_test</p>

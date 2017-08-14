@@ -12,28 +12,26 @@ import random
 import csv
 import sys
 
-
 def apply_RFECV_mask(mask, *args):
     """Applies a binary mask to a dataframe to remove columns. Binary mask is
     created from recursive feature elimination and cross validation and
     optimizes the generalization of the model
 
     Args:
-        :param dataframe (pandas dataframe): Dataframe containing columns
         :param mask (string): text file containing the binary mask
-
+        :param *args (pandas dataframe): Dataframes containing columns to mask
     Returns:
-        :new dataframen (pandas df): new dataframe with columns removed
+        :new dataframes (pandas df): new dataframes with columns removed
     """
     assert os.path.isfile(mask), "please pass a string specifying mask location"
     dir_path = os.path.dirname(os.path.realpath(__file__))
     mask = os.path.join(dir_path, mask)
-
+    #get mask data
     updated_args = []
     with open(mask, 'r') as f:
         reader = csv.reader(f)
         column_mask = list(reader)[0]
-
+    #apply mask to columns
     column_indexes = []
     for dataframe in args:
         assert len(column_mask) == len(list(dataframe)), 'mask length {} does not match dataframe length {}'.format(len(column_mask), len(list(dataframe)))
@@ -45,28 +43,31 @@ def apply_RFECV_mask(mask, *args):
 
     return updated_args
 
-
-
 class data_base(object):
-    """Handles all data fetching and preparation. Also holds all data
+    """Handles all data fetching and preparation. Attributes
+       can be assigned to csv files with the assignment operator. Typical use
+       case is to set raw_data to a csv file matching the format found in
+       Input files and then calling clean_raw_data(). This sets the clean_X_data,
+       y_enrichment and target values. From this point you can split the data
+       to train/test the model using our data. To predict your own data, make sure your excel sheet
+       matches the format in <Input_Files/database.csv>. Then you can
+       call db.predict = <your_csv_path>. The X_test and Y_test data will now
+       be your data. Just remove the stratified_data_split from the pipeline
+       because you will now not need to split any data.
 
        Args:
             None
-
        Attributes:
             :self._raw_data (Pandas Dataframe): Holds raw data in the same form as excel file. initialized after fetch_raw_data() is called
-
-            ###attributes below are initialized after clean_data() is called###
-
             :self._clean_X_data (Pandas Dataframe): Holds cleaned and prepared X data.
-            :self._Y_enrichmet (numpy array): Holds continous Y values
+            :self._Y_enrichment (numpy array): Holds continous Y values
             :self._X_train (Pandas Dataframe): Holds the X training data
             :self._X_test (Pandas Dataframe): Holds the X test data
             :self._Y_train (Pandas Dataframe): Holds the Y training data
             :self._Y_test (Pandas Dataframe): Holds the T testing data
-            :self._column_headers (list): holds the column headers
+            :self._test_accesion_numbers (list): holds the accesion_numbers
+            in the test set
         """
-
     _ENRICHMENT_SPLIT_VALUE = 1 #enrichment threshold to classify as bound or unbound
     categorical_data = ['Enzyme Commission Number', 'Particle Size', 'Particle Charge', 'Solvent Cysteine Concentration', 'Solvent NaCl Concentration']
     columns_to_drop = ['Protein Length', 'Sequence', 'Enrichment', 'Accesion Number']
@@ -81,8 +82,15 @@ class data_base(object):
         self._X_test = None
         self._Y_test = None
         self._test_accesion_numbers = None
+        #If you want to use our model set this to your csv file using the assignment operator
+        self._predict = None
 
     def clean_raw_data(self):
+        """ Cleans the raw data, drops useless columns, one hot encodes, and extracts
+        class information
+
+        Args, Returns: None
+        """
         self.clean_X_data = self.raw_data
         #Categorize Interprot identifiers n hot encoding
         self.clean_X_data = multi_label_encode(self.clean_X_data, 'Interprot')
@@ -93,7 +101,7 @@ class data_base(object):
         #Grab some useful data before dropping from independant variables
         self.Y_enrichment = self.clean_X_data['Enrichment']
         accesion_numbers = self.clean_X_data['Accesion Number']
-
+        #drop useless columns
         for column in self.columns_to_drop:
             self.clean_X_data = self.clean_X_data.drop(column, 1)
 
@@ -101,8 +109,51 @@ class data_base(object):
         self.clean_X_data = normalize_and_reshape(self.clean_X_data, accesion_numbers)
         self._target = classify(self.Y_enrichment, self._ENRICHMENT_SPLIT_VALUE) #enrichment or nsaf
 
+        self.X_train = self.clean_X_data
+        self.Y_train = self.target
+
+    def clean_user_test_data(self, user_data):
+        """This method makes it easy for other people to make predictions
+        on their data.
+        called by assignment operator when users set db.predict = <path_to_csv>
+
+        Args:
+            :param user_data: users data they wish to predict
+        Returns:
+            None
+        """
+        #Categorize Interprot identifiers n hot encoding
+        user_data = multi_label_encode(user_data, 'Interprot')
+        #one hot encode categorical data
+        for category in self.categorical_data:
+            user_data = one_hot_encode(user_data, category)
+
+        #Grab some useful data before dropping from independant variables
+        self.Y_test = user_data['Enrichment']
+        accesion_numbers = user_data['Accesion Number']
+
+        for column in self.columns_to_drop:
+            user_data = user_data.drop(column, 1)
+
+        user_data = fill_nan(user_data, 'Protein Abundance')
+        self.X_test = normalize_and_reshape(user_data, accesion_numbers)
+        self.Y_test = classify(self.Y_test, self._ENRICHMENT_SPLIT_VALUE) #enrichment or nsaf
+        #Get accession number
+        self.test_accesion_numbers = self.X_test['Accesion Number']
+        self.X_train = self.X_train.drop('Accesion Number', 1)
+        self.X_test = self.X_test.drop('Accesion Number', 1)
+
     def stratified_data_split(self, test_size=0.0):
+        """Randomized stratified shuffle split that sets training and testing data
+
+        Args:
+            :param test_size (float): The percentage of data to use for testing
+        Returns:
+            None
+        """
         assert test_size <= 1.0 and test_size >= 0.0, "test_size must be between 0 and 1"
+        assert self.predict is None, "Remove stratified_data_split() if using your own data"
+
         self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data, self.target, test_size = test_size, random_state=int((random.random()*100)))
         self.test_accesion_numbers = self.X_test['Accesion Number']
         self.X_train = self.X_train.drop('Accesion Number', 1)
@@ -110,6 +161,14 @@ class data_base(object):
 
     @staticmethod
     def fetch_raw_data(enm_database):
+        """Fetches enm-protein data from a csv file
+        called by assignment operator for db.raw_data
+
+        Args:
+            :param enm_database (str): path to csv database
+        Returns:
+            None
+        """
         assert os.path.isfile(enm_database), "please pass a string specifying database location"
 
         dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -144,10 +203,7 @@ class data_base(object):
 
     @property
     def Y_test(self):
-        if self._Y_test is None:
-            raise ValueError("Initialize Y_train by calling stratified_data_split()")
-        else:
-            return self._Y_test
+        return self._Y_test
 
     @property
     def raw_data(self):
@@ -179,9 +235,13 @@ class data_base(object):
     @property
     def test_accesion_numbers(self):
         if self._test_accesion_numbers is None:
-            raise ValueError("Initialize test_accesion_numbers by calling stratified_data_spli()t")
+            raise ValueError("Initialize test_accesion_numbers by calling stratified_data_split()")
         else:
             return self._test_accesion_numbers
+
+    @property
+    def predict(self):
+        return self._predict
 
     @X_train.setter
     def X_train(self, path):
@@ -253,7 +313,24 @@ class data_base(object):
             #If trying to set to already imported array
             self._test_accesion_numbers = path
 
+    @predict.setter
+    def predict(self, path):
+        if (os.path.isfile(path)):
+            self._predict = self.fetch_raw_data(path)
+            self._predict = self.clean_user_test_data(self._predict)
+        else:
+            self._predict = path
+
 def normalize_and_reshape(data, labels):
+    """Normalize and reshape the data by columns while preserving labels
+    information
+
+    Args:
+        :param data (pandas df): The data to normalize
+        :param labels (pandas series): The column labels
+    Returns:
+        :param data (pandas df): normalized dataframe with preserved column labels
+    """
     norm_df = preprocessing.MinMaxScaler().fit_transform(data)
     data = pd.DataFrame(norm_df,columns=list(data))
     data = pd.concat([labels, data], axis=1)
@@ -268,7 +345,6 @@ def classify(data, cutoff):
     Args:
         :param data (array): array of continous data
         :param cutoff (float): cutoff value for classification
-
     Returns:
         :classified_data(np.array): classified data
     """
@@ -294,7 +370,6 @@ def fill_nan(data, column):
     Args:
         :param data (pandas Dataframe): Dataframe containing column with nan values
         :param column (String): specifying column to fill_nans
-
     Returns:
         :data (pandas Dataframe): Containing the column with filled nan values
     """
@@ -316,7 +391,6 @@ def one_hot_encode(dataframe, category):
     Args:
         :param dataframe (pandas Dataframe): Dataframe containing column to be encoded
         :param category (String): specifying the column to encode
-
     Returns:
         :dataframe (Pandas Dataframe): With the specified column now encoded into a one
         hot representation
@@ -327,7 +401,6 @@ def one_hot_encode(dataframe, category):
     dataframe.drop(category, axis=1, inplace=True)
     return dataframe
 
-
 def multi_label_encode(dataframe, column):
     """This function is used as a multilabel encoder for the Interprot numbers in the database.
         The interprot numbers are seperated by a semi-colon. We use a multi label encoder because
@@ -336,7 +409,6 @@ def multi_label_encode(dataframe, column):
         Args:
             :param dataframe (Pandas Dataframe): Dataframe containing protein data
             :param column: (String): Name of column to be multi-label-encoded
-
         Returns:
             :new_dataframe (Pandas Dataframe): With new multi label columns
     """
@@ -398,18 +470,16 @@ def to_excel(classification_information):
 
         Args:
             :classification_information (numpy array): Information about results
-
-            classification_information = {'all_predict_proba' : np.empty([TOTAL_TESTED_PROTEINS], dtype=float),
-                                      'all_true_results' : np.empty([TOTAL_TESTED_PROTEINS], dtype=int),
-                                      'all_accesion_numbers' : np.empty([TOTAL_TESTED_PROTEINS], dtype=str),
-                                      'all_particle_information' : np.empty([2, TOTAL_TESTED_PROTEINS], dtype=int),
-                                      'all_solvent_information' : np.empty([3, TOTAL_TESTED_PROTEINS], dtype=int)
-                                      }
-
+            >classification_information = {
+                'all_predict_proba' : np.empty([TOTAL_TESTED_PROTEINS], dtype=float),
+                'all_true_results' : np.empty([TOTAL_TESTED_PROTEINS], dtype=int),
+                'all_accesion_numbers' : np.empty([TOTAL_TESTED_PROTEINS], dtype=str),
+                'all_particle_information' : np.empty([2, TOTAL_TESTED_PROTEINS], dtype=int),
+                'all_solvent_information' : np.empty([3, TOTAL_TESTED_PROTEINS], dtype=int)
+                }
         Returns:
             None
         """
-
     with open('prediction_probability.csv', 'w') as file:
         file.write('Protein Accesion Number, Particle Type, Solvent Conditions, True Bound Value, Predicted Bound Value, Predicted Probability of Being Bound, Properly Classified\n')
 
@@ -454,10 +524,19 @@ def to_excel(classification_information):
 
             file.write('{}, {}, {}, {}, {}, {}, {}\n'.format(protein, particle, solvent, bound, predicted_bound,round(pred, 2), properly_classified))
 
-def hold_in_memory(classification_information, metrics, i):
-    #Set constants for array indexs
-    ITERATIONS = i
-    TEST_SIZE = 302 #10% of training data is used for testing 10% of 3012=302
+def hold_in_memory(classification_information, metrics, iterations, test_size):
+    """Holds classification data in memory to be exported to excel
+
+    Args:
+        :classification_information (dict): container for all the classification_information from all the runs
+        :metrics (tuple): information from the current test set to add to classification_information
+        :iterations (int): The current test iterations
+        :test_size (int): The amount of values in the current test set
+    Returns:
+        None
+    """
+    i = iterations
+    TEST_SIZE = test_size #10% of training data is used for testing ceil(10% of 3012)=302
     PARTICLE_SIZE = 0
     PARTICLE_CHARGE = 1
     SOLVENT_CYS = 0

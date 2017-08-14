@@ -2,7 +2,6 @@
 
 This module contains all the visualization tools used to analyze our data.
 """
-
 from __future__ import division
 import data_utils
 import matplotlib.pyplot as plt
@@ -12,7 +11,6 @@ import math
 from mpl_toolkits.mplot3d import Axes3D
 from string import ascii_letters
 
-
 class visualize_data(object):
     """Offers an easy way to create visualizations for the input data
 
@@ -20,7 +18,6 @@ class visualize_data(object):
         :param data (pandas Dataframe): The X data from the database
         :param enrichment (array of floats): The continous Y data from the
         database
-
     Attributes:
         :data (pandas Dataframe): The X data
         :enrichemnt (array of floats): The continous Y data
@@ -39,9 +36,8 @@ class visualize_data(object):
             :param x_label (string): The data column for the x-axis
             :param y_label (string): The data column for the y-axis
             :param z_label (string): The data column for the z-axis
-
         Returns:
-                None
+            None
         """
         assert isinstance(self.data, pd.DataFrame), "Please pass first argument as pandas dataframe"
         assert all(isinstance(i, str) for i in [x_label, y_label, z_label]), "labels must be strings"
@@ -89,7 +85,6 @@ class visualize_data(object):
         Args:
             :param particle_name (string): The name of the particle type
             :param enrichment (np.array of floats): The X data to be binned
-
         Returns:
             None
         """
@@ -113,24 +108,22 @@ class visualize_data(object):
         plt.tight_layout()
         plt.show()
 
-    @staticmethod
-    def continous_distribution_by_particle():
+    def continous_distribution_by_particle(self):
         """Visualizes all the particle types in the dataset,
         Outputs 7 graphs, one for each reaction condition.
 
         Args:
             None
-
         Returns:
             None
         """
         self.continous_data_distribution('Enrichment Factors on All Particles in The Database with 50 bins')
         self.continous_data_distribution('Enrichment Factors on the Positive 10nm Silver Nanoparticle \n with no Solute', self.enrichment[0:356])
         self.continous_data_distribution('Enrichment Factors on the Negative 10nm Silver Nanoparticle \n with no Solute', self.enrichment[356:924])
-        self.continous_data_distribution('Enrichment Factors on the Negative 100nm Silver Nanoparticle \n with no Solute', self.enrichment[924:1502])
-        self.continous_data_distribution('Enrichment Factors on the Negative 10nm Silver Nanoparticle \n with 0.1mM Cysteine', self.enrichment[1502:1989])
-        self.continous_data_distribution('Enrichment Factors on the Negative 10nm Silver Nanoparticle \n with 0.8 mM NaCl', self.enrichment[1989:2499] )
-        self.continous_data_distribution('Enrichment Factors on the Negative 10nm Silver Nanoparticle \n with 3.0 mM NaCl', self.enrichment[2499:3013])
+        self.continous_data_distribution('Enrichment Factors on the Negative 100nm Silver Nanoparticle \n with no Solute', self.enrichment[924:1501])
+        self.continous_data_distribution('Enrichment Factors on the Negative 10nm Silver Nanoparticle \n with 0.1mM Cysteine', self.enrichment[1501:1988])
+        self.continous_data_distribution('Enrichment Factors on the Negative 10nm Silver Nanoparticle \n with 0.8 mM NaCl', self.enrichment[1988:2498] )
+        self.continous_data_distribution('Enrichment Factors on the Negative 10nm Silver Nanoparticle \n with 3.0 mM NaCl', self.enrichment[2499:3011])
         self.discrete_data_distribution()
 
     def scatterplot(self, x, y):
@@ -140,8 +133,9 @@ class visualize_data(object):
         Args:
             :param x (string): The name of the column desired for x-axis
             :param y (string): The name of the column desired for the y-axis
+        Returns:
+            None
         """
-
         plot_data = {'x': {'bound' : [], 'unbound': []},
                      'y': {'bound' : [], 'unbound': []}}
 
@@ -168,7 +162,6 @@ class visualize_data(object):
 
         Args:
             None
-
         Returns:
             None
         """
@@ -197,7 +190,6 @@ class visualize_data(object):
         Args:
             :param rects (list): rectangles to label
             :param ax (obj): The axis of the pyplot graph
-
         Returns:
             None
         """
@@ -220,7 +212,6 @@ class visualize_data(object):
             threshold
             :param thresholds (np array of floats): The thresholds that lead
             to the tpr and fpr
-
         Returns:
             None
         """
@@ -250,7 +241,6 @@ class visualize_data(object):
             :param thresholds (np array of floats): The thresholds used
             :param youden_index_values (np array of floats): The values of
             the youden index at each threshold
-
         Returns:
             None
         """
@@ -270,7 +260,12 @@ class visualize_data(object):
         plt.show()
 
     def correlation_plot(self):
+        """Plots a correlation plot of all the continous variables in the
+        database. This plot helped us remove protein length which was highly
+        correlated with protein weight.
 
+        Args, Returns:  None
+        """
         corr = self.data.iloc[:,:8].corr()
         f, ax = plt.subplots(figsize=(11,9))
         ax.grid(False)
@@ -285,9 +280,10 @@ class visualize_data(object):
         plt.tight_layout()
         plt.show()
 
-
 if __name__ == "__main__":
     db = data_utils.data_base()
-    db.clean_data()
+    db.raw_data = "Input_Files/database.csv"
+    db.clean_raw_data()
     v = visualize_data(db.clean_X_data, db.Y_enrichment)
     v.correlation_plot()
+    v.continous_distribution_by_particle()
