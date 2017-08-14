@@ -20,25 +20,25 @@ command line.</p>
 <p> To make predictions of your own data go to the main function in estimator.py. Set db.predict = "your_csv_path". This will use our data to make predictions on yours. A csv file will be outputted
 with easily interpretable results. Be weary of predictions that fall within the 0.4-0.6 probability range
 as these are considered unreliable </p>
-<h3> python files </h3>
-<h5> estimator.py </h5>
+<h2> python files </h2>
+<h3> estimator.py </h3>
 <p> contains main(). Runs the estimator and includes lines to run recursive feature elimination
 or grid search.</p>
-<h5> predictor_utils.py </h5>
+<h3> predictor_utils.py </h3>
 <p>contains tools to build and optimize the estimator.</p>
-<h5> visualization_tools.py </h5>
+<h3> visualization_tools.py </h3>
 <p>Contains some fun functions to help us visualize the ENM data </p>
-<h5> validator.py </h5>
+<h3> validator.py </h3>
 <p> Contains functions and classes that make it easy to validate the model performance </p>
-<h5>statistic_parser.py</h5>
+<h3>statistic_parser.py</h3>
 <p> parses the model JSON output and prints it in readable format to the command line </p>
-<h5> Input Files </h5>
+<h2> Input Files </h2>
 <h3>database.csv</h3>
 <p> contains the database </p>
 <h3>mask.txt</h3>
 <p> a boolean mask produced by recursive feature elimination and cross validation.
 This mask is applied to the database to produce an optimal amount of features </p>
-<h5> Output Files </h5>
+<h2> Output Files </h2>
 <h3> final.json </h3>
 <p>non stratified results from running the model 50x</p>
 <h3>stratified_final.json</h3>
