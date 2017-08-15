@@ -39,7 +39,7 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
         :feature_importances (dict): contains a dictionary of feature importances
         :classification_information (dict): information about the predictions
     """
-    if (db.Y_test is None):
+    if (db.predict is None):
         #We split our own data for training and testing if user isn't predicting their own data
         db.stratified_data_split(test_percentage)
 
