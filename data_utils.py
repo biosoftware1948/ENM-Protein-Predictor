@@ -154,7 +154,7 @@ class data_base(object):
         assert test_size <= 1.0 and test_size >= 0.0, "test_size must be between 0 and 1"
         assert self.predict is None, "Remove stratified_data_split() if using your own data"
 
-        self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data, self.target, test_size = test_size, random_state=int((random.random()*100)))
+        self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data, self.target, test_size = test_size, stratify=self.target, random_state=int((random.random()*100)))
         self.test_accesion_numbers = self.X_test['Accesion Number']
         self.X_train = self.X_train.drop('Accesion Number', 1)
         self.X_test = self.X_test.drop('Accesion Number', 1)
