@@ -1,6 +1,7 @@
 <h1> This Script Predicts Interactions between engineered nanomaterials and proteins under relevant biological conditions </h1>
 <p> This is funded undergraduate research from the Dr. Wheeler lab at Santa Clara University </p>
 <p> Written by Matthew Findlay 2017 <p>
+<p> Fork me and feel free to contribute your research <p>
 <h2> Implementation </h2>
 <p> This script uses a random forest classifier to make predictions <p>
 <h2> Data </h2>
