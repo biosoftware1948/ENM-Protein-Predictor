@@ -3,7 +3,7 @@
 <p> Written by Matthew Findlay 2017 <p>
 <p> Fork me and feel free to contribute your research <p>
 <h2> Implementation </h2>
-<p> This script uses a random forest classifier to make predictions <p>
+<p> This script uses a random forest classifier to make predictions. Several different machine learning algorithms and ensembles were used but we ultimately decided to stick with random forests due to their human readability <p>
 <h2> Data </h2>
 The experiments were setup by Danny Freitas (undergraduate bioengineering). Danny reacts nanomaterials and extracted proteins, and sends his samples to stanford where LC/MS/MS is used
 To produce the spectral counts of proteins on the surface of engineered nanoparticles (bound), and proteins not on the surface of particles (unbound). Data was
