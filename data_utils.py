@@ -7,10 +7,12 @@ import os
 import pandas as pd
 import numpy as np
 import sklearn
-from sklearn import preprocessing, cross_validation, model_selection
+from sklearn import preprocessing, model_selection
+# from sklearn.model_selection import cross_validate
 import random
 import csv
 import sys
+
 
 def apply_RFECV_mask(mask, *args):
     """Applies a binary mask to a dataframe to remove columns. Binary mask is
@@ -26,22 +28,23 @@ def apply_RFECV_mask(mask, *args):
     assert os.path.isfile(mask), "please pass a string specifying mask location"
     dir_path = os.path.dirname(os.path.realpath(__file__))
     mask = os.path.join(dir_path, mask)
-    #get mask data
+    # get mask data
     updated_args = []
     with open(mask, 'r') as f:
         reader = csv.reader(f)
         column_mask = list(reader)[0]
-    #apply mask to columns
+    # apply mask to columns
     column_indexes = []
     for dataframe in args:
         assert len(column_mask) == len(list(dataframe)), 'mask length {} does not match dataframe length {}'.format(len(column_mask), len(list(dataframe)))
         for i, col in enumerate(column_mask):
-    	    if col.strip() == 'False':
-    		    column_indexes.append(i)
+            if col.strip() == 'False':
+                column_indexes.append(i)
 
         updated_args.append(dataframe.drop(dataframe.columns[column_indexes], axis=1))
 
     return updated_args
+
 
 class data_base(object):
     """Handles all data fetching and preparation. Attributes
@@ -68,7 +71,7 @@ class data_base(object):
             :self._test_accesion_numbers (list): holds the accesion_numbers
             in the test set
         """
-    _ENRICHMENT_SPLIT_VALUE = 1 #enrichment threshold to classify as bound or unbound
+    _ENRICHMENT_SPLIT_VALUE = 1 # enrichment threshold to classify as bound or unbound
     categorical_data = ['Enzyme Commission Number', 'Particle Size', 'Particle Charge', 'Solvent Cysteine Concentration', 'Solvent NaCl Concentration']
     columns_to_drop = ['Protein Length', 'Sequence', 'Enrichment', 'Accesion Number']
 
@@ -82,7 +85,7 @@ class data_base(object):
         self._X_test = None
         self._Y_test = None
         self._test_accesion_numbers = None
-        #If you want to use our model set this to your csv file using the assignment operator
+        # If you want to use our model set this to your csv file using the assignment operator
         self._predict = None
 
     def clean_raw_data(self):
@@ -92,16 +95,16 @@ class data_base(object):
         Args, Returns: None
         """
         self.clean_X_data = self.raw_data
-        #Categorize Interprot identifiers n hot encoding
+        # Categorize Interprot identifiers n hot encoding
         self.clean_X_data = multi_label_encode(self.clean_X_data, 'Interprot')
-        #one hot encode categorical data
+        # one hot encode categorical data
         for category in self.categorical_data:
             self.clean_X_data = one_hot_encode(self.clean_X_data, category)
 
-        #Grab some useful data before dropping from independant variables
+        # Grab some useful data before dropping from independent variables
         self.Y_enrichment = self.clean_X_data['Enrichment']
         accesion_numbers = self.clean_X_data['Accesion Number']
-        #drop useless columns
+        # drop useless columns
         for column in self.columns_to_drop:
             self.clean_X_data = self.clean_X_data.drop(column, 1)
 
@@ -122,13 +125,13 @@ class data_base(object):
         Returns:
             None
         """
-        #Categorize Interprot identifiers n hot encoding
+        # Categorize Interprot identifiers n hot encoding
         user_data = multi_label_encode(user_data, 'Interprot')
-        #one hot encode categorical data
+        # one hot encode categorical data
         for category in self.categorical_data:
             user_data = one_hot_encode(user_data, category)
 
-        #Grab some useful data before dropping from independant variables
+        # Grab some useful data before dropping from independant variables
         self.Y_test = user_data['Enrichment']
         accesion_numbers = user_data['Accesion Number']
 
@@ -137,8 +140,8 @@ class data_base(object):
 
         user_data = fill_nan(user_data, 'Protein Abundance')
         self.X_test = normalize_and_reshape(user_data, accesion_numbers)
-        self.Y_test = classify(self.Y_test, self._ENRICHMENT_SPLIT_VALUE) #enrichment or nsaf
-        #Get accession number
+        self.Y_test = classify(self.Y_test, self._ENRICHMENT_SPLIT_VALUE) # enrichment or nsaf
+        # Get accession number
         self.test_accesion_numbers = self.X_test['Accesion Number']
         self.X_train = self.X_train.drop('Accesion Number', 1)
         self.X_test = self.X_test.drop('Accesion Number', 1)
@@ -151,7 +154,7 @@ class data_base(object):
         Returns:
             None
         """
-        assert test_size <= 1.0 and test_size >= 0.0, "test_size must be between 0 and 1"
+        assert 1.0 >= test_size >= 0.0, "test_size must be between 0 and 1"
         assert self.predict is None, "Remove stratified_data_split() if using your own data"
 
         self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data, self.target, test_size = test_size, stratify=self.target, random_state=int((random.random()*100)))
@@ -175,7 +178,7 @@ class data_base(object):
         enm_database = os.path.join(dir_path, enm_database)
         try:
             raw_data = pd.read_csv(enm_database)
-        except:
+        except ValueError:
             raise ValueError("File is not a valid csv")
 
         return raw_data
@@ -245,77 +248,77 @@ class data_base(object):
 
     @X_train.setter
     def X_train(self, path):
-        if (isinstance(path, str) and os.path.isfile(path)):
-            #If trying to set to value from excel
+        if isinstance(path, str) and os.path.isfile(path):
+            # If trying to set to value from excel
             self._X_train = fetch_raw_data(path)
         else:
-            #If trying to set to already imported array
+            # If trying to set to already imported array
             self._X_train = path
 
     @X_test.setter
     def X_test(self, path):
-        if (isinstance(path, str) and os.path.isfile(path)):
-            #If trying to set to value from excel
+        if isinstance(path, str) and os.path.isfile(path):
+            # If trying to set to value from excel
             self._X_test = fetch_raw_data(path)
         else:
-            #If trying to set to already imported array
+            # If trying to set to already imported array
             self._X_test = path
 
     @Y_train.setter
     def Y_train(self, path):
-        if (isinstance(path, str) and os.path.isfile(path)):
-            #If trying to set to value from excel
+        if isinstance(path, str) and os.path.isfile(path):
+            # If trying to set to value from excel
             self._Y_train = fetch_raw_data(path)
         else:
-            #If trying to set to already imported array
+            # If trying to set to already imported array
             self._Y_train = path
 
     @Y_test.setter
     def Y_test(self, path):
-        if (isinstance(path, str) and os.path.isfile(path)):
-            #If trying to set to value from excel
+        if isinstance(path, str) and os.path.isfile(path):
+            # If trying to set to value from excel
             self._Y_test = fetch_raw_data(path)
         else:
-            #If trying to set to already imported array
+            # If trying to set to already imported array
             self._Y_test = path
 
     @raw_data.setter
     def raw_data(self, enm_database):
-        if (isinstance(enm_database, str) and os.path.isfile(enm_database)):
+        if isinstance(enm_database, str) and os.path.isfile(enm_database):
             self._raw_data = self.fetch_raw_data(enm_database)
         else:
             self._raw_data = enm_database
 
     @clean_X_data.setter
     def clean_X_data(self, path):
-        if (isinstance(path, str) and os.path.isfile(path)):
-            #If trying to set to value from excel
+        if isinstance(path, str) and os.path.isfile(path):
+            # If trying to set to value from excel
             self.clean_X_data = fetch_raw_data(path)
         else:
-            #If trying to set to already imported array
+            # If trying to set to already imported array
             self._clean_X_data = path
 
     @Y_enrichment.setter
     def Y_enrichment(self, path):
-        if (isinstance(path, str) and os.path.isfile(path)):
-            #If trying to set to value from excel
+        if isinstance(path, str) and os.path.isfile(path):
+            # If trying to set to value from excel
             self._Y_enrichment = fetch_raw_data(path)
         else:
-            #If trying to set to already imported array
+            # If trying to set to already imported array
             self._Y_enrichment = path
 
     @test_accesion_numbers.setter
     def test_accesion_numbers(self, path):
-        if (isinstance(path, str) and os.path.isfile(path)):
-            #If trying to set to value from excel
+        if isinstance(path, str) and os.path.isfile(path):
+            # If trying to set to value from excel
             self._Y_enrichment = fetch_raw_data(path)
         else:
-            #If trying to set to already imported array
+            # If trying to set to already imported array
             self._test_accesion_numbers = path
 
     @predict.setter
     def predict(self, path):
-        if (os.path.isfile(path)):
+        if os.path.isfile(path):
             self._predict = self.fetch_raw_data(path)
             self._predict = self.clean_user_test_data(self._predict)
         else:
@@ -351,8 +354,8 @@ def classify(data, cutoff):
     if not isinstance(data, np.ndarray):
         try:
             data = np.array(data)
-        except:
-            print "data could not be converted to type: numpy array"
+        except TypeError:
+            print("data could not be converted to type: numpy array")
 
     classified_data = np.empty((len(data)))
 
@@ -363,6 +366,7 @@ def classify(data, cutoff):
             classified_data[i] = 0
 
     return classified_data
+
 
 def fill_nan(data, column):
     """ Fills nan values with mean in specified column.
@@ -380,10 +384,11 @@ def fill_nan(data, column):
     total = 0
     for val in data[column]:
         if not np.isnan(val):
-            count+=1
-            total+=val
+            count += 1
+            total += val
     data[column] = data[column].fillna(total/count)
     return data
+
 
 def one_hot_encode(dataframe, category):
     """This function converts categorical variables into one hot vectors
@@ -397,9 +402,10 @@ def one_hot_encode(dataframe, category):
     """
     assert isinstance(dataframe, pd.DataFrame), 'data argument needs to be pandas dataframe'
     dummy = pd.get_dummies(dataframe[category], prefix=category)
-    dataframe = pd.concat([dataframe,dummy], axis = 1)
+    dataframe = pd.concat([dataframe, dummy], axis=1)
     dataframe.drop(category, axis=1, inplace=True)
     return dataframe
+
 
 def multi_label_encode(dataframe, column):
     """This function is used as a multilabel encoder for the Interprot numbers in the database.
@@ -423,17 +429,19 @@ def multi_label_encode(dataframe, column):
             interprot_identifiers.append(ip)
             protein_ips[row].append(ip)
 
-    categorical_df = pd.DataFrame(index= np.arange(dataframe.shape[0]), columns = set(interprot_identifiers))
+    categorical_df = pd.DataFrame(index=np.arange(dataframe.shape[0]), columns=set(interprot_identifiers))
     categorical_df = categorical_df.fillna(0)
 
-    for key, val in protein_ips.iteritems():
+    for key, val in protein_ips.items():
         for v in val:
             if v != 0:
-                categorical_df.set_value(key, v, 1)
+                # categorical_df.set_value(key, v, 1)
+                categorical_df.at[key, v] = 1
 
     dataframe = dataframe.drop(column, 1)
     new_dataframe = pd.concat([dataframe, categorical_df], axis=1)
     return new_dataframe
+
 
 def clean_print(obj):
     """
@@ -449,21 +457,22 @@ def clean_print(obj):
     if isinstance(obj, dict):
         for key, val in obj.items():
             if hasattr(val, '__iter__'):
-                print "\n" + key
+                print("\n" + key)
                 clean_print(val)
             else:
-                print '%s : %s' % (key, val)
+                print('%s : %s' % (key, val))
     elif isinstance(obj, list):
         for val in obj:
             if hasattr(val, '__iter__'):
                 clean_print(val)
             else:
-                print val
+                print(val)
     else:
         if isinstance(obj, pd.DataFrame):
             clean_print(obj.to_dict(orient='records'))
         else:
-            print str(obj) + "\n"
+            print(str(obj) + "\n")
+
 
 def to_excel(classification_information):
     """ Prints model output to an excel file
@@ -509,20 +518,21 @@ def to_excel(classification_information):
                 particle_size = '100nm'
             if particle_c == 1:
                 particle_charge = 'positive'
-            if (particle_size == '10nm' and particle_charge == 'positive'):
+            if particle_size == '10nm' and particle_charge == 'positive':
                 particle = '(+) 10 nm AgNP'
-            if (particle_size == '10nm' and particle_charge == 'negative'):
+            if particle_size == '10nm' and particle_charge == 'negative':
                 particle = '(-) 10 nm AgNP'
-            if (particle_size == '100nm' and particle_charge == 'negative'):
+            if particle_size == '100nm' and particle_charge == 'negative':
                 particle = '(-) 100 nm AgNP'
-            if (cys == 1):
+            if cys == 1:
                 solvent = '10 mM NaPi pH 7.4 + 0.1 mM cys'
-            if (salt8 == 1):
+            if salt8 == 1:
                 solvent = '10 mM NaPi pH 7.4 + 0.8 mM NaCl'
-            if (salt3 == 1):
+            if salt3 == 1:
                 solvent = '10 mM NaPi pH 7.4 + 3.0 mM NaCl'
 
             file.write('{}, {}, {}, {}, {}, {}, {}\n'.format(protein, particle, solvent, bound, predicted_bound,round(pred, 2), properly_classified))
+
 
 def hold_in_memory(classification_information, metrics, iterations, test_size):
     """Holds classification data in memory to be exported to excel
@@ -536,13 +546,13 @@ def hold_in_memory(classification_information, metrics, iterations, test_size):
         None
     """
     i = iterations
-    TEST_SIZE = test_size #10% of training data is used for testing ceil(10% of 3012)=302
+    TEST_SIZE = test_size # 10% of training data is used for testing ceil(10% of 3012)=302
     PARTICLE_SIZE = 0
     PARTICLE_CHARGE = 1
     SOLVENT_CYS = 0
     SOLVENT_SALT_08 = 1
     SOLVENT_SALT_3 = 2
-    #Information is placed into numpy arrays as blocks
+    # Information is placed into numpy arrays as blocks
     classification_information['all_predict_proba'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[0]
     classification_information['all_true_results'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[1]
     classification_information['all_accesion_numbers'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[2]
@@ -551,6 +561,7 @@ def hold_in_memory(classification_information, metrics, iterations, test_size):
     classification_information['all_solvent_information'][SOLVENT_CYS][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Solvent Cysteine Concentration_0.1']
     classification_information['all_solvent_information'][SOLVENT_SALT_08][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Solvent NaCl Concentration_0.8']
     classification_information['all_solvent_information'][SOLVENT_SALT_3][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Solvent NaCl Concentration_3.0']
+
 
 if __name__ == "__main__":
     db = data_base()

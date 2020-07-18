@@ -6,9 +6,11 @@ us with feature engineering and model optimization.
 import os
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import RFECV
-from sklearn.grid_search import GridSearchCV
+from sklearn.model_selection import GridSearchCV
+# from sklearn.grid_search import GridSearchCV
 import sklearn
 import numpy as np
+
 
 class RandomForestClassifierWithCoef(RandomForestClassifier):
     """Adds feature weights for each returned variable from the
@@ -21,6 +23,7 @@ class RandomForestClassifierWithCoef(RandomForestClassifier):
         """
         super(RandomForestClassifierWithCoef, self).fit(*args, **kwargs)
         self.coef_ = self.feature_importances_
+
 
 def optimize(model, X_train, Y_train):
     """This function optimizes the machine learning classifier's hyperparameters,
@@ -35,21 +38,22 @@ def optimize(model, X_train, Y_train):
     Returns:
         None
     """
-    #add whatever your heart desires to param grid, keep in mind its an incredibly inefficient algorithm
+    # add whatever your heart desires to param grid, keep in mind its an incredibly inefficient algorithm
     param_grid = {
         'n_estimators': [2500],
         'max_features': ['auto'],
         'max_depth': [None],
-        #'min_samples_split': [5, 10, 15, 20, 50], #results from first run was 5
-        'min_samples_split' : [2,3,4,5,6,7,8,9],
-        #'min_samples_leaf': [1, 5, 15, 20, 50], # results from first run was 1
-        'min_samples_leaf' : [1], #min_samples_leaf isn't necessary when using min_samples_split anyways
+        # 'min_samples_split': [5, 10, 15, 20, 50], #results from first run was 5
+        'min_samples_split': [2, 3, 4, 5, 6, 7, 8, 9],
+        # 'min_samples_leaf': [1, 5, 15, 20, 50], # results from first run was 1
+        'min_samples_leaf': [1],  # min_samples_leaf isn't necessary when using min_samples_split anyways
         'n_jobs': [-1],
     }
-    #5 fold validation
-    CV_est = GridSearchCV(estimator=model, param_grid=param_grid, cv= 10)
+    # 5 fold validation
+    CV_est = GridSearchCV(estimator=model, param_grid=param_grid, cv=10)
     CV_est.fit(X_train, Y_train)
-    print "Best parameters: \n {}".format(CV_est.best_params_)
+    print("Best parameters: \n {}".format(CV_est.best_params_))
+
 
 def recursive_feature_elimination(model, X_train, Y_train, mask_file):
     """Runs RFECV with 5 folds, stores optimum features
@@ -69,9 +73,9 @@ def recursive_feature_elimination(model, X_train, Y_train, mask_file):
 
     selector = RFECV(estimator=model, step=1, cv=10, scoring='f1', verbose=1)
     selector = selector.fit(X_train, Y_train)
-    print "selector support: \n {} \n selector ranking: \n {}".format(selector.support_, selector.ranking_)
-    print "Optimal number of features: \n {} \n Selector grid scores: \n {} \n".format(selector.n_features_, selector.grid_scores_)
-    #write optimum binary mask to text file
+    print("selector support: \n {} \n selector ranking: \n {}".format(selector.support_, selector.ranking_))
+    print("Optimal number of features: \n {} \n Selector grid scores: \n {} \n".format(selector.n_features_, selector.grid_scores_))
+    # write optimum binary mask to text file
     with open(mask_file, 'w') as f:
-            for item in selector.support_:
-                f.write('{}, '.format(item))
+        for item in selector.support_:
+            f.write('{}, '.format(item))

@@ -11,6 +11,7 @@ import math
 from mpl_toolkits.mplot3d import Axes3D
 from string import ascii_letters
 
+
 class visualize_data(object):
     """Offers an easy way to create visualizations for the input data
 
@@ -47,12 +48,12 @@ class visualize_data(object):
         y = np.array(self.data[y_label])
         z = np.array(self.data[z_label])
 
-        plot_data = {'x': {'bound' : [], 'unbound': []},
-                     'y': {'bound' : [], 'unbound': []},
-                     'z': {'bound' : [], 'unbound': []}}
+        plot_data = {'x': {'bound': [], 'unbound': []},
+                     'y': {'bound': [], 'unbound': []},
+                     'z': {'bound': [], 'unbound': []}}
 
         for i, val in enumerate(self.target):
-            if val==bound:
+            if val == bound:
                 plot_data['x']['bound'].append(x[i])
                 plot_data['y']['bound'].append(y[i])
                 plot_data['z']['bound'].append(z[i])
@@ -100,7 +101,7 @@ class visualize_data(object):
         plt.xticks(fontsize=26)
         plt.yticks(fontsize=26)
         plt.ylim([0.0, 100])
-        plt.xlim([-3.0,3.0])
+        plt.xlim([-3.0, 3.0])
         plt.hist(np.log10(enrichment), bins=25, color = "#3F5D7D")
         plt.title('Histogram of '  + str(particle_name), y=1.08, fontsize=22)
         plt.ylabel('Frequency', fontsize=26)
@@ -156,7 +157,6 @@ class visualize_data(object):
         plt.ylabel(str(x), fontsize = 26)
         plt.xlabel(str(y), fontsize=26)
 
-
     def discrete_data_distribution(self):
         """This function gives a visualization of class balance in the data
 
@@ -174,7 +174,7 @@ class visualize_data(object):
             else:
                 ubound = ubound + 1
 
-        #Plot
+        # Plot
         x = [0,1]
         y = [ubound, bound]
         plt.bar(x, y, width=0.1, color='blue')
@@ -255,7 +255,7 @@ class visualize_data(object):
         plt.ylim([0.0, 0.5])
         plt.title('Optimal Accuracy Cutoff', fontsize=22)
         plt.xlabel('Classification Cutoff Threshold',fontsize=20)
-        plt.ylabel('Youden Index',fontsize=20)
+        plt.ylabel('Youden Index', fontsize=20)
         plt.plot(thresholds, youden_index_values, color="#800000", linewidth=2)
         plt.show()
 
@@ -276,9 +276,10 @@ class visualize_data(object):
         plt.colorbar(ticks = (-1.0, -0.5, 0, 0.5, 1))
         plt.xticks(range(len(corr)), corr.columns, rotation='vertical', fontsize=20)
         plt.yticks(range(len(corr)), corr.columns, fontsize=20);
-        #plt.suptitle('Correlation plot of protein features', fontsize=22, fontweight='bold')
+        # plt.suptitle('Correlation plot of protein features', fontsize=22, fontweight='bold')
         plt.tight_layout()
         plt.show()
+
 
 if __name__ == "__main__":
     db = data_utils.data_base()

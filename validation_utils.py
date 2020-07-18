@@ -3,13 +3,17 @@
 This module includes a class with several validation metrics and helper
 functions for those validation metrics.
 """
+
 import data_utils
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.exceptions import UndefinedMetricWarning
+from sklearn.utils import column_or_1d
 import math
 import visualization_utils
 import sklearn
+
 
 class validation_metrics(object):
     """Several statistical tests used to validate the models predictive power
@@ -39,24 +43,27 @@ class validation_metrics(object):
         """
         tpr = []
         fpt = []
-        fpr, tpr, thresholds = set_threshold_roc_curve(self.true_results, self.predicted_results, pos_label=1, drop_intermediate=True)
+        fpr, tpr, thresholds = set_threshold_roc_curve(self.true_results, self.predicted_results, pos_label=1,
+                                                       drop_intermediate=True)
 
         youden_index_values = np.zeros([len(thresholds)])
         for i in range(0, len(thresholds)):
-            youden_index_values[i] = ((tpr[i]+(1-fpr[i])-1))/(math.sqrt(2))
+            youden_index_values[i] = (tpr[i] + (1 - fpr[i]) - 1) / (math.sqrt(2))
 
         visualization_utils.visualize_data.youden_index_plot(thresholds, youden_index_values)
 
         return youden_index_values
+
     def roc_curve(self):
-        """Plots the Reciever Operating Characteristic Curve (true positive
+        """Plots the Receiver Operating Characteristic Curve (true positive
         rate vs false positive rate) Generate area under the curve and Calculates
         true positive and false positive rate for an array of thresholds.
 
         Args, Returns: None
         """
         roc = sklearn.metrics.roc_auc_score(self.true_results, self.predicted_results)
-        fpr, tpr, thresholds = set_threshold_roc_curve(self.true_results, self.predicted_results, pos_label=1, drop_intermediate=True)
+        fpr, tpr, thresholds = set_threshold_roc_curve(self.true_results, self.predicted_results, pos_label=1,
+                                                       drop_intermediate=True)
 
         visualization_utils.visualize_data.roc_plot(roc, fpr, tpr, thresholds)
 
@@ -79,13 +86,16 @@ class validation_metrics(object):
         conf_matrix = sklearn.metrics.confusion_matrix(self.true_results, classified_predictions, labels=None)
 
         return {
-                "AUROC" : sklearn.metrics.roc_auc_score(self.true_results, self.predicted_results),
-                "Recall" : sklearn.metrics.recall_score(self.true_results, classified_predictions, labels=None, pos_label=1, average=None, sample_weight=None)[1],
-                "Precision" : sklearn.metrics.precision_score(self.true_results, classified_predictions, labels=None, pos_label=1, average=None, sample_weight=None)[1],
-                "F1 Score" : sklearn.metrics.f1_score(self.true_results, classified_predictions),
-                "Accuracy" : sklearn.metrics.accuracy_score(self.true_results, classified_predictions),
-                "Confusion Matrix" : [conf_matrix[0][0], conf_matrix[0][1], conf_matrix[1][0], conf_matrix[1][1]]
+                "AUROC": sklearn.metrics.roc_auc_score(self.true_results, self.predicted_results),
+                "Recall": sklearn.metrics.recall_score(self.true_results, classified_predictions, labels=None,
+                                                       pos_label=1, average=None, sample_weight=None)[1],
+                "Precision": sklearn.metrics.precision_score(self.true_results, classified_predictions, labels=None,
+                                                             pos_label=1, average=None, sample_weight=None)[1],
+                "F1 Score": sklearn.metrics.f1_score(self.true_results, classified_predictions),
+                "Accuracy": sklearn.metrics.accuracy_score(self.true_results, classified_predictions),
+                "Confusion Matrix": [conf_matrix[0][0], conf_matrix[0][1], conf_matrix[1][0], conf_matrix[1][1]]
                 }
+
 
 def y_randomization_test(est, db):
     """Runs a y_randomization test on the model and writes the results
@@ -99,12 +109,14 @@ def y_randomization_test(est, db):
     """
     with open('y_randomization.csv', 'w') as f:
         f.write(' , Accuracy, AUROC, F1-Score, Precision, Recall\n')
-        for i in range(0,50):
-            probability_prediction = est.predict_proba(db.X_test)[:,1]
-            f.write('Randomized {} times, {}, {}, {}, {}, {} \n'.format(i,sklearn.metrics.accuracy_score(db.Y_test, data_utils.classify(probability_prediction, 0.5)),sklearn.metrics.roc_auc_score(db.Y_test, data_utils.classify(probability_prediction, 0.5)),sklearn.metrics.f1_score(db.Y_test, data_utils.classify(probability_prediction, 0.5)),sklearn.metrics.precision_score(db.Y_test, data_utils.classify(probability_prediction, 0.5)),sklearn.metrics.recall_score(db.Y_test, data_utils.classify(probability_prediction, 0.5))))
+        for i in range(0, 50):
+            probability_prediction = est.predict_proba(db.X_test)[:, 1]
+            f.write('Randomized {} times, {}, {}, {}, {}, {} \n'.format(i, sklearn.metrics.accuracy_score(db.Y_test, data_utils.classify(probability_prediction, 0.5)), sklearn.metrics.roc_auc_score(db.Y_test, data_utils.classify(probability_prediction, 0.5)), sklearn.metrics.f1_score(db.Y_test, data_utils.classify(probability_prediction, 0.5)),sklearn.metrics.precision_score(db.Y_test, data_utils.classify(probability_prediction, 0.5)),sklearn.metrics.recall_score(db.Y_test, data_utils.classify(probability_prediction, 0.5))))
             np.random.shuffle(db.Y_test)
 
-#***HELPER FUNCTIONS***#
+# ***HELPER FUNCTIONS*** #
+
+
 def stable_cumsum(arr, rtol=1e-05, atol=1e-08):
     """
     --->Taken From sci-kit learn documentation to help set_threshold_roc_curve
@@ -128,6 +140,7 @@ def stable_cumsum(arr, rtol=1e-05, atol=1e-08):
         raise RuntimeError('cumsum was found to be unstable: '
                            'its last element does not correspond to sum')
     return out
+
 
 def set_threshold_roc_curve(y_true, y_score, pos_label=None, sample_weight=None,
               drop_intermediate=True):
@@ -173,20 +186,19 @@ def set_threshold_roc_curve(y_true, y_score, pos_label=None, sample_weight=None,
         fps = np.r_[0, fps]
         thresholds = np.r_[thresholds[0] + 1, thresholds]
     if fps[-1] <= 0:
-        warnings.warn("No negative samples in y_true, "
-                      "false positive value should be meaningless",
-                      UndefinedMetricWarning)
+        Warning.warn("No negative samples in y_true, " "false positive value should be meaningless",
+                     UndefinedMetricWarning)
         fpr = np.repeat(np.nan, fps.shape)
     else:
         fpr = fps / fps[-1]
     if tps[-1] <= 0:
-        warnings.warn("No positive samples in y_true, "
-                      "true positive value should be meaningless",
-                      UndefinedMetricWarning)
+        Warning.warn("No positive samples in y_true, " "true positive value should be meaningless",
+                     UndefinedMetricWarning)
         tpr = np.repeat(np.nan, tps.shape)
     else:
         tpr = tps / tps[-1]
     return fpr, tpr, thresholds
+
 
 def _binary_clf_curve(y_true, y_score, pos_label=None, sample_weight=None):
     """
@@ -224,11 +236,11 @@ def _binary_clf_curve(y_true, y_score, pos_label=None, sample_weight=None):
     # ensure binary classification if pos_label is not specified
     classes = np.unique(y_true)
     if (pos_label is None and
-        not (array_equal(classes, [0, 1]) or
-             array_equal(classes, [-1, 1]) or
-             array_equal(classes, [0]) or
-             array_equal(classes, [-1]) or
-             array_equal(classes, [1]))):
+        not (np.array_equal(classes, [0, 1]) or
+             np.array_equal(classes, [-1, 1]) or
+             np.array_equal(classes, [0]) or
+             np.array_equal(classes, [-1]) or
+             np.array_equal(classes, [1]))):
         raise ValueError("Data is not binary and pos_label is not specified")
     elif pos_label is None:
         pos_label = 1.
