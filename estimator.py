@@ -73,8 +73,21 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
     return val.well_rounded_validation(), feature_importances, classification_information
 
 
+class NpEncoder(json.JSONEncoder):
+    def default(self, obj):
+        if isinstance(obj, np.integer):
+            return int(obj)
+        elif isinstance(obj, np.floating):
+            return float(obj)
+        elif isinstance(obj, np.ndarray):
+            return obj.tolist()
+        else:
+            return super(NpEncoder, self).default(obj)
+
+
 if __name__ == '__main__':
-    assert len(sys.argv) == 3, "First command line argument is the amount of times to run the model, second command line argument is output file for json results"
+    assert len(sys.argv) == 3, "First command line argument is the amount of times to run the model, " \
+                               "second command line argument is output file for json results"
     iterations = int(sys.argv[1])
     output_file = sys.argv[2]
 
@@ -89,7 +102,7 @@ if __name__ == '__main__':
     # Set constants for array indexes
     if db.Y_test is not None:
         # db.Y_test is set if user wants to predict their own data
-        test_size = db.Y_test.shape[0] #If user has their own data
+        test_size = db.Y_test.shape[0] # If user has their own data
     else:
         # If not we split our own database for training and testing
         test_size = 302 # 10% of training data is used for testing 10% of 3012=302
@@ -100,11 +113,11 @@ if __name__ == '__main__':
     results = {}
 
     # Information about classified particle protein pairs
-    classification_information = {'all_predict_proba' : np.empty([TOTAL_TESTED_PROTEINS], dtype=float),
-                                  'all_true_results' : np.empty([TOTAL_TESTED_PROTEINS], dtype=int),
-                                  'all_accesion_numbers' : np.empty([TOTAL_TESTED_PROTEINS], dtype="S10"),
-                                  'all_particle_information' : np.empty([2, TOTAL_TESTED_PROTEINS], dtype=int),
-                                  'all_solvent_information' : np.empty([3, TOTAL_TESTED_PROTEINS], dtype=int)
+    classification_information = {'all_predict_proba': np.empty([TOTAL_TESTED_PROTEINS], dtype=float),
+                                  'all_true_results': np.empty([TOTAL_TESTED_PROTEINS], dtype=int),
+                                  'all_accesion_numbers': np.empty([TOTAL_TESTED_PROTEINS], dtype="S10"),
+                                  'all_particle_information': np.empty([2, TOTAL_TESTED_PROTEINS], dtype=int),
+                                  'all_solvent_information': np.empty([3, TOTAL_TESTED_PROTEINS], dtype=int)
                                   }
 
     # Run the model multiple times and store results
@@ -113,14 +126,13 @@ if __name__ == '__main__':
         metrics = pipeline(db)
         # hold scores and importance data in json format
         results["Run_" + str(i)] = {'scores': metrics[SCORES], 'importances': metrics[IMPORTANCES]}
-        print(results)
+        # print(results)
         # hold classification information in arrays to output to excel file
         data_utils.hold_in_memory(classification_information, metrics[INFORMATION], i, test_size)
 
     # dump the statistic and feature importance results as json
     with open(output_file, 'w') as f:
-        print(results)
-        json.dump(results, f)
+        json.dump(results, f, cls=NpEncoder)
     # Pass prediction information to be inserted into excel document
     data_utils.to_excel(classification_information)
     # Run statistic parser for human readable json
