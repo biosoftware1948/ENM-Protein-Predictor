@@ -96,17 +96,31 @@ class data_base(object):
         """
         self.clean_X_data = self.raw_data
         # Categorize Interprot identifiers n hot encoding
-        self.clean_X_data = multi_label_encode(self.clean_X_data, 'Interprot')
+        self.clean_X_data = multi_label_encode(self.clean_X_data, 'Interprot') #encodes interprot numbers
         # one hot encode categorical data
         for category in self.categorical_data:
             self.clean_X_data = one_hot_encode(self.clean_X_data, category)
 
         # Grab some useful data before dropping from independent variables
-        self.Y_enrichment = self.clean_X_data['Enrichment']
+        ###### REMOVE ENRICHMENT FACTORS, must recalculate ourselves #####
+        ##### We'll use this variable y_Enrichment in order to perform normalization methods on the Bound Fraction and Protein Abundance
+        ##### that way we can make the calculations and then use the CLASSIFY METHOD
+
+        protein_abundance = fill_nan(pd.DataFrame(self.clean_X_data['Protein Abundance']), 'Protein Abundance')
+        bound_fraction = fill_nan(pd.DataFrame(self.clean_X_data['Bound Fraction']), 'Bound Fraction')
+        
         accesion_numbers = self.clean_X_data['Accesion Number']
+
+        #Calculate the new enrichment values from Protein Abundance and Bound Fraction values 
+        self.Y_enrichment = self.calculateEnrichment(protein_abundance, bound_fraction, accesion_numbers)
+
+        ##self.Y_enrichment = self.clean_X_data['Enrichment']
+        ##accesion_numbers = self.clean_X_data['Accesion Number']
+
+
         # drop useless columns
         for column in self.columns_to_drop:
-            self.clean_X_data = self.clean_X_data.drop(column, 1)
+            self.clean_X_data = self.clean_X_data.drop(column, 1)   
 
         self.clean_X_data = fill_nan(self.clean_X_data, 'Protein Abundance')
         self.clean_X_data = normalize_and_reshape(self.clean_X_data, accesion_numbers)
@@ -145,6 +159,43 @@ class data_base(object):
         self.test_accesion_numbers = self.X_test['Accesion Number']
         self.X_train = self.X_train.drop('Accesion Number', 1)
         self.X_test = self.X_test.drop('Accesion Number', 1)
+
+    def calculateEnrichment(self, protein_abundance, bound_fraction, label):
+        """Calculates new enrichment values using a simple mathematical formula
+
+        Args:
+            :param protein_abundance (pd DataFrame): quantifies presence of all proteins in solution
+            :param bound_fraction (pd DataFrame): quantifies proteins that are bound to protein corona 
+            :param labels (pd Series): column labels to be preserved 
+        Returns:
+            :enrichment (pd Series): pd Series that contains newly calculated Enrichment values 
+        """
+        #normalize the data to avoid negative values when performing calculations 
+        #### PROBLEM: problem is figuring out the right scaling method for both PA and BF values
+        protein_abundance = normalize_and_reshape(protein_abundance, label) 
+        bound_fraction = normalize_and_reshape(bound_fraction, label)
+        
+        
+        #Perform the calculations via formula given by Professor Wheeler 
+        enrichment = [] #this will be converted to a pandas Series later
+        for ind in protein_abundance.index:
+            PA_val = protein_abundance['Protein Abundance'][ind]
+            BF_val = bound_fraction['Bound Fraction'][ind]
+            UB_val = PA_val - BF_val
+            if UB_val < 0:
+                print("BF val: " + str(BF_val))
+                print("PA val: " + str(PA_val))
+            
+            #if BF_val > PA_val:
+            #    print("Larger BF val: " + str(BF_val)) 
+            
+            #enrich_val = UB_val / PA_val
+            #print(enrich_val) 
+            #enrichment.append(enrich_val)
+            
+    def zScoreNormalization(self, data, labels):
+        print("nice")
+        #Because we noticed potential outliers that could impact the MinMaxScaler, we may have to try implementing Z Score normalization
 
     def stratified_data_split(self, test_size=0.0):
         """Randomized stratified shuffle split that sets training and testing data

@@ -93,7 +93,9 @@ if __name__ == '__main__':
 
     # Initialize our database
     db = data_utils.data_base()
-    db.raw_data = "Input_Files/database.csv"
+    #db.raw_data = "Input_Files/database.csv"
+    #This is the newly reformatted database that is being tested right now 
+    db.raw_data = "Reformatted_Files/reformatted_database.csv"
     db.clean_raw_data()
 
     # To use our data to predict yours, set your data below and uncomment:
@@ -102,10 +104,10 @@ if __name__ == '__main__':
     # Set constants for array indexes
     if db.Y_test is not None:
         # db.Y_test is set if user wants to predict their own data
-        test_size = db.Y_test.shape[0] # If user has their own data
+        test_size = db.Y_test.shape[0]  # If user has their own data
     else:
         # If not we split our own database for training and testing
-        test_size = 302 # 10% of training data is used for testing 10% of 3012=302
+        test_size = 302  # 10% of training data is used for testing 10% of 3012=302
     TOTAL_TESTED_PROTEINS = test_size*iterations
     SCORES = 0
     IMPORTANCES = 1
