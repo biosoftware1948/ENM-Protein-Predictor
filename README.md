@@ -12,11 +12,13 @@ normalized, and a ratio was created giving a NSAF value representing the enrichm
 With this enrichment factor, databases were mined for protein characteristics, and this information was used to predict if a given protein
 and nanomaterial pair will bind
 <h2> How to use </h2>
-<p>To run the pipeline and reproduce the results call estimator.py "amount of runs" "output file" (2 command line arguments). This
+<p>To run the pipeline and reproduce the results call "python estimator.py (insert # of runs) (insert output file) (2 command line arguments).
+An example call might be "python estimator.py 50 output.zip".  This
 will output the statistics and feature importances to the "output file" in JSON format. This will also
-output all the classification information to a csv file. To see the statistics and feature importances
-in a readable format call statistic_parser.py "output_file" and the results will be printed to the
-command line.</p>
+output all the classification information to a csv file.  To see the statistics and feature importances
+in a readable format call "statistic_parser.py (output_file) and the results will be printed to the
+command line.  If you want to visualize your data, simply type "python visualization_utils.py (insert output file here)".
+It'll create and display the various figures and graphs for you.</p>
 <h2> Predicting your own data</h2>
 <p> To make predictions of your own data go to the main function in estimator.py. Set db.predict = "your_csv_path". This will use our data to make predictions on yours. A csv file will be outputted
 with easily interpretable results. Be weary of predictions that fall within the 0.4-0.6 probability range
