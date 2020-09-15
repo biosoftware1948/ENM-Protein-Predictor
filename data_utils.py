@@ -7,7 +7,7 @@ import os
 import pandas as pd
 import numpy as np
 import sklearn
-from sklearn import preprocessing, model_selection
+from sklearn import preprocessing, model_selection #StandardScaler
 # from sklearn.model_selection import cross_validate
 import random
 import csv
@@ -73,7 +73,8 @@ class data_base(object):
         """
     _ENRICHMENT_SPLIT_VALUE = 1 # enrichment threshold to classify as bound or unbound
     categorical_data = ['Enzyme Commission Number', 'Particle Size', 'Particle Charge', 'Solvent Cysteine Concentration', 'Solvent NaCl Concentration']
-    columns_to_drop = ['Protein Length', 'Sequence', 'Enrichment', 'Accesion Number']
+    #columns_to_drop = ['Protein Length', 'Sequence', 'Enrichment', 'Accesion Number']
+    columns_to_drop = ['Protein Length', 'Sequence', 'Accesion Number']
 
     def __init__(self):
         self._raw_data = None
@@ -170,31 +171,30 @@ class data_base(object):
         Returns:
             :enrichment (pd Series): pd Series that contains newly calculated Enrichment values 
         """
-        #normalize the data to avoid negative values when performing calculations 
-        #### PROBLEM: problem is figuring out the right scaling method for both PA and BF values
-        protein_abundance = normalize_and_reshape(protein_abundance, label) 
-        bound_fraction = normalize_and_reshape(bound_fraction, label)
-        
+        # :NOTE:Keep in mind 'Bound Fraction' is a fraction
         
         #Perform the calculations via formula given by Professor Wheeler 
         enrichment = [] #this will be converted to a pandas Series later
+        PA_val = 1 #decimal percentage of all proteins
+        #count = 0
         for ind in protein_abundance.index:
-            PA_val = protein_abundance['Protein Abundance'][ind]
-            BF_val = bound_fraction['Bound Fraction'][ind]
-            UB_val = PA_val - BF_val
-            if UB_val < 0:
-                print("BF val: " + str(BF_val))
-                print("PA val: " + str(PA_val))
-            
-            #if BF_val > PA_val:
-            #    print("Larger BF val: " + str(BF_val)) 
-            
-            #enrich_val = UB_val / PA_val
-            #print(enrich_val) 
-            #enrichment.append(enrich_val)
+            #print(protein_abundance['Protein Abundance'][ind])
+            enrichment.append(PA_val - protein_abundance['Protein Abundance'][ind])
+        #print(enrichment)
+        #need to return list as a PD series 
+        return pd.Series(enrichment) 
             
     def zScoreNormalization(self, data, labels):
         print("nice")
+        df_std = data.copy()
+
+        for column in df_std.columns:
+             df_std[column] = (df_std[column] - df_std[column].mean()) / df_std[column].std()
+        
+        print(df_std)
+
+        return df_std
+
         #Because we noticed potential outliers that could impact the MinMaxScaler, we may have to try implementing Z Score normalization
 
     def stratified_data_split(self, test_size=0.0):
