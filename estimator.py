@@ -54,9 +54,11 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
                             random_state=data_utils.random.randint(1, 2**8)
                             )
     if optimize:
+        print("optimize")
         predictor_utils.optimize(est, db.X_train, db.Y_train)
         sys.exit(0)
     if RFECV:
+        print('RFECV')
         predictor_utils.recursive_feature_elimination(est, db.X_train, db.Y_train, 'tst.txt')
         sys.exit(0)
 
@@ -93,7 +95,6 @@ if __name__ == '__main__':
 
     # Initialize our database
     db = data_utils.data_base()
-    #db.raw_data = "Input_Files/database.csv"
     #This is the newly reformatted database that is being tested right now 
     db.raw_data = "Reformatted_Files/reformatted_database.csv"
     db.clean_raw_data()
@@ -103,9 +104,11 @@ if __name__ == '__main__':
 
     # Set constants for array indexes
     if db.Y_test is not None:
+        print("User has their own data")
         # db.Y_test is set if user wants to predict their own data
         test_size = db.Y_test.shape[0]  # If user has their own data
     else:
+        print("We use our own data")
         # If not we split our own database for training and testing
         test_size = 302  # 10% of training data is used for testing 10% of 3012=302
     TOTAL_TESTED_PROTEINS = test_size*iterations
