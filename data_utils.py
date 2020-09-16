@@ -74,7 +74,7 @@ class data_base(object):
     _ENRICHMENT_SPLIT_VALUE = 1 # enrichment threshold to classify as bound or unbound
     categorical_data = ['Enzyme Commission Number', 'Particle Size', 'Particle Charge', 'Solvent Cysteine Concentration', 'Solvent NaCl Concentration']
     #columns_to_drop = ['Protein Length', 'Sequence', 'Enrichment', 'Accesion Number']
-    columns_to_drop = ['Protein Length', 'Sequence', 'Accesion Number']
+    columns_to_drop = ['Protein Length', 'Sequence', 'Accesion Number', 'Bound Fraction']
 
     def __init__(self):
         self._raw_data = None
@@ -103,21 +103,12 @@ class data_base(object):
             self.clean_X_data = one_hot_encode(self.clean_X_data, category)
 
         # Grab some useful data before dropping from independent variables
-        ###### REMOVE ENRICHMENT FACTORS, must recalculate ourselves #####
-        ##### We'll use this variable y_Enrichment in order to perform normalization methods on the Bound Fraction and Protein Abundance
-        ##### that way we can make the calculations and then use the CLASSIFY METHOD
-
         protein_abundance = fill_nan(pd.DataFrame(self.clean_X_data['Protein Abundance']), 'Protein Abundance')
         bound_fraction = fill_nan(pd.DataFrame(self.clean_X_data['Bound Fraction']), 'Bound Fraction')
-        
         accesion_numbers = self.clean_X_data['Accesion Number']
 
-        #Calculate the new enrichment values from Protein Abundance and Bound Fraction values 
+        #Calculate new enrichment values from Protein Abundance and Bound Fraction values 
         self.Y_enrichment = self.calculateEnrichment(protein_abundance, bound_fraction, accesion_numbers)
-
-        ##self.Y_enrichment = self.clean_X_data['Enrichment']
-        ##accesion_numbers = self.clean_X_data['Accesion Number']
-
 
         # drop useless columns
         for column in self.columns_to_drop:
@@ -175,11 +166,9 @@ class data_base(object):
         
         #Perform the calculations via formula given by Professor Wheeler 
         enrichment = [] #this will be converted to a pandas Series later
-        PA_val = 1 #decimal percentage of all proteins
-        #count = 0
+        PA_val = 1 
         for ind in protein_abundance.index:
-            #print(protein_abundance['Protein Abundance'][ind])
-            enrichment.append(PA_val - protein_abundance['Protein Abundance'][ind])
+            enrichment.append(PA_val - bound_fraction['Bound Fraction'][ind])
         #print(enrichment)
         #need to return list as a PD series 
         return pd.Series(enrichment) 
@@ -192,9 +181,7 @@ class data_base(object):
              df_std[column] = (df_std[column] - df_std[column].mean()) / df_std[column].std()
         
         print(df_std)
-
         return df_std
-
         #Because we noticed potential outliers that could impact the MinMaxScaler, we may have to try implementing Z Score normalization
 
     def stratified_data_split(self, test_size=0.0):
