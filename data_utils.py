@@ -28,6 +28,7 @@ def apply_RFECV_mask(mask, *args):
     assert os.path.isfile(mask), "please pass a string specifying mask location"
     dir_path = os.path.dirname(os.path.realpath(__file__))
     mask = os.path.join(dir_path, mask)
+    breakpoint()
     # get mask data
     updated_args = []
     with open(mask, 'r') as f:
@@ -36,13 +37,15 @@ def apply_RFECV_mask(mask, *args):
     # apply mask to columns
     column_indexes = []
     for dataframe in args:
+        breakpoint()
         assert len(column_mask) == len(list(dataframe)), 'mask length {} does not match dataframe length {}'.format(len(column_mask), len(list(dataframe)))
         for i, col in enumerate(column_mask):
+            #breakpoint()
             if col.strip() == 'False':
                 column_indexes.append(i)
 
         updated_args.append(dataframe.drop(dataframe.columns[column_indexes], axis=1))
-
+    breakpoint()
     return updated_args
 
 
@@ -117,9 +120,11 @@ class data_base(object):
         self.clean_X_data = fill_nan(self.clean_X_data, 'Protein Abundance')
         self.clean_X_data = normalize_and_reshape(self.clean_X_data, accesion_numbers)
         self._target = classify(self.Y_enrichment, self._ENRICHMENT_SPLIT_VALUE) #enrichment or nsaf
+        breakpoint()
 
         self.X_train = self.clean_X_data
         self.Y_train = self.target
+       
 
     def clean_user_test_data(self, user_data):
         """This method makes it easy for other people to make predictions
@@ -166,15 +171,27 @@ class data_base(object):
         
         #Perform the calculations via formula given by Professor Wheeler 
         enrichment = [] #this will be converted to a pandas Series later
-        PA_val = 1 
+
+        ##### These values are scaled with MinMaxScaler #####
+        #protein_abundance = normalize_and_reshape(protein_abundance, label)
+        #bound_fraction = normalize_and_reshape(bound_fraction, label)
+
+        ##### These values are scaled with Z Score Normalization #####
+        protein_abundance = zScoreNormalization(protein_abundance, label)
+        bound_fraction = zScoreNormalization(bound_fraction, label)
+
+        #Loop through the values and generate corresponding Enrichment Factors 
         for ind in protein_abundance.index:
-            enrichment.append(PA_val - bound_fraction['Bound Fraction'][ind])
-        #print(enrichment)
-        #need to return list as a PD series 
-        return pd.Series(enrichment) 
+            proteinAbundance = protein_abundance['Protein Abundance'][ind]
+            boundFraction = bound_fraction['Bound Fraction'][ind]
+            unboundFraction = proteinAbundance - boundFraction
+            newEnrichmentFactor = boundFraction/unboundFraction
+            print(proteinAbundance)
+            #print(boundFraction)
+            #print(unboundFraction)
+            #print(newEnrichmentFactor)
             
     def zScoreNormalization(self, data, labels):
-        print("nice")
         df_std = data.copy()
 
         for column in df_std.columns:
@@ -182,7 +199,6 @@ class data_base(object):
         
         print(df_std)
         return df_std
-        #Because we noticed potential outliers that could impact the MinMaxScaler, we may have to try implementing Z Score normalization
 
     def stratified_data_split(self, test_size=0.0):
         """Randomized stratified shuffle split that sets training and testing data
