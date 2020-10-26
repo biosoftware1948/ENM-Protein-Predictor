@@ -21,6 +21,7 @@ class RandomForestClassifierWithCoef(RandomForestClassifier):
         """Overloaded fit method to include the feature importances
         of each variable. This is used for RFECV
         """
+        breakpoint()
         super(RandomForestClassifierWithCoef, self).fit(*args, **kwargs)
         self.coef_ = self.feature_importances_
 
