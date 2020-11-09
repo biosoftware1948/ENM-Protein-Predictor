@@ -173,23 +173,39 @@ class data_base(object):
         enrichment = [] #this will be converted to a pandas Series later
 
         ##### These values are scaled with MinMaxScaler #####
-        #protein_abundance = normalize_and_reshape(protein_abundance, label)
-        #bound_fraction = normalize_and_reshape(bound_fraction, label)
+        #normalizedProteinAbundance = normalize_and_reshape(protein_abundance, label)
+        #normalizedBoundFraction = normalize_and_reshape(bound_fraction, label)
 
         ##### These values are scaled with Z Score Normalization #####
-        protein_abundance = zScoreNormalization(protein_abundance, label)
-        bound_fraction = zScoreNormalization(bound_fraction, label)
+        #normalizedProteinAbundance = self.zScoreNormalization(protein_abundance, label)
+        #normalizedBoundFraction = self.zScoreNormalization(bound_fraction, label)
+
+        #### These values are scaled with Max Absolute Scaler ####
+        normalizedProteinAbundance = self.maxAbsScaler(protein_abundance, label)
+        normalizedBoundFraction = self.maxAbsScaler(bound_fraction, label)
+
 
         #Loop through the values and generate corresponding Enrichment Factors 
         for ind in protein_abundance.index:
-            proteinAbundance = protein_abundance['Protein Abundance'][ind]
-            boundFraction = bound_fraction['Bound Fraction'][ind]
+            proteinAbundance = normalizedProteinAbundance['Protein Abundance'][ind]
+            boundFraction = normalizedBoundFraction['Bound Fraction'][ind]
             unboundFraction = proteinAbundance - boundFraction
             newEnrichmentFactor = boundFraction/unboundFraction
-            print(proteinAbundance)
+            enrichment.append(newEnrichmentFactor)
+            #print(protein_abundance['Protein Abundance'][ind])
+            #print(bound_fraction['Bound Fraction'][ind])
+            #print(proteinAbundance)
             #print(boundFraction)
             #print(unboundFraction)
             #print(newEnrichmentFactor)
+        classifiedProteins = classify(enrichment, self._ENRICHMENT_SPLIT_VALUE)
+        #return enrichment
+
+    def maxAbsScaler(self, data, labels):
+        transformed = preprocessing.MaxAbsScaler().fit_transform(data)
+        print(transformed)
+        return transformed
+        
             
     def zScoreNormalization(self, data, labels):
         df_std = data.copy()
@@ -411,13 +427,21 @@ def classify(data, cutoff):
         except TypeError:
             print("data could not be converted to type: numpy array")
 
+    boundProteinCount = 0
+    unboundProteinCount = 0
+
     classified_data = np.empty((len(data)))
 
     for i, val in enumerate(data):
         if float(val) >= float(cutoff):
             classified_data[i] = 1
+            boundProteinCount += 1
         else:
             classified_data[i] = 0
+            unboundProteinCount += 1 
+    
+    print("Bound Protein count: " + str(boundProteinCount))
+    print("Unbound Protein count: " + str(unboundProteinCount)) 
 
     return classified_data
 
