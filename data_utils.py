@@ -6,6 +6,7 @@ and cleaning. It also contains functions that help us work with our data.
 import os
 import pandas as pd
 import numpy as np
+from tabulate import tabulate
 import sklearn
 from sklearn import preprocessing, model_selection #StandardScaler
 # from sklearn.model_selection import cross_validate
@@ -28,7 +29,6 @@ def apply_RFECV_mask(mask, *args):
     assert os.path.isfile(mask), "please pass a string specifying mask location"
     dir_path = os.path.dirname(os.path.realpath(__file__))
     mask = os.path.join(dir_path, mask)
-    breakpoint()
     # get mask data
     updated_args = []
     with open(mask, 'r') as f:
@@ -37,15 +37,12 @@ def apply_RFECV_mask(mask, *args):
     # apply mask to columns
     column_indexes = []
     for dataframe in args:
-        breakpoint()
         assert len(column_mask) == len(list(dataframe)), 'mask length {} does not match dataframe length {}'.format(len(column_mask), len(list(dataframe)))
         for i, col in enumerate(column_mask):
-            #breakpoint()
             if col.strip() == 'False':
                 column_indexes.append(i)
 
         updated_args.append(dataframe.drop(dataframe.columns[column_indexes], axis=1))
-    breakpoint()
     return updated_args
 
 
@@ -74,10 +71,11 @@ class data_base(object):
             :self._test_accesion_numbers (list): holds the accesion_numbers
             in the test set
         """
-    _ENRICHMENT_SPLIT_VALUE = 1 # enrichment threshold to classify as bound or unbound
+    _ENRICHMENT_SPLIT_VALUE = 1  # enrichment threshold to classify as bound or unbound
     categorical_data = ['Enzyme Commission Number', 'Particle Size', 'Particle Charge', 'Solvent Cysteine Concentration', 'Solvent NaCl Concentration']
-    #columns_to_drop = ['Protein Length', 'Sequence', 'Enrichment', 'Accesion Number']
-    columns_to_drop = ['Protein Length', 'Sequence', 'Accesion Number', 'Bound Fraction']
+    # columns_to_drop = ['Protein Length', 'Sequence', 'Accesion Number', 'Bound Fraction']
+    # new set of parameters to drop that are not necessary for the model
+    columns_to_drop = ['Protein Length', 'Sequence', 'Accesion Number']
 
     def __init__(self):
         self._raw_data = None
@@ -100,8 +98,8 @@ class data_base(object):
         """
         self.clean_X_data = self.raw_data
         # Categorize Interprot identifiers n hot encoding
-        self.clean_X_data = multi_label_encode(self.clean_X_data, 'Interprot') #encodes interprot numbers
-        # one hot encode categorical data
+        self.clean_X_data = multi_label_encode(self.clean_X_data, 'Interprot') # encodes interprot numbers
+        # one hot encode categorical data2
         for category in self.categorical_data:
             self.clean_X_data = one_hot_encode(self.clean_X_data, category)
 
@@ -110,8 +108,16 @@ class data_base(object):
         bound_fraction = fill_nan(pd.DataFrame(self.clean_X_data['Bound Fraction']), 'Bound Fraction')
         accesion_numbers = self.clean_X_data['Accesion Number']
 
-        #Calculate new enrichment values from Protein Abundance and Bound Fraction values 
-        self.Y_enrichment = self.calculateEnrichment(protein_abundance, bound_fraction, accesion_numbers)
+        # Calculate new enrichment values from Protein Abundance and Bound Fraction values
+        self.Y_enrichment, unbound_fraction = self.calculateEnrichmentAndUnboundValues(protein_abundance, bound_fraction
+                                                                                       , accesion_numbers)
+
+        print(unbound_fraction)
+        self.clean_X_data.append(unbound_fraction, ignore_index=True)
+        pd.set_option("display.max_rows", None, "display.max_columns", None)
+        print(self.clean_X_data.columns.values)
+        # print(tabulate(self.clean_X_data, headers='keys', tablefmt='psql'))
+        # pretty print all values and make sure that the Unbound Fraction column can be seen
 
         # drop useless columns
         for column in self.columns_to_drop:
@@ -119,12 +125,9 @@ class data_base(object):
 
         self.clean_X_data = fill_nan(self.clean_X_data, 'Protein Abundance')
         self.clean_X_data = normalize_and_reshape(self.clean_X_data, accesion_numbers)
-        self._target = classify(self.Y_enrichment, self._ENRICHMENT_SPLIT_VALUE) #enrichment or nsaf
-        breakpoint()
-
+        self._target = classify(self.Y_enrichment, self._ENRICHMENT_SPLIT_VALUE)  # enrichment or nsaf
         self.X_train = self.clean_X_data
         self.Y_train = self.target
-       
 
     def clean_user_test_data(self, user_data):
         """This method makes it easy for other people to make predictions
@@ -142,7 +145,7 @@ class data_base(object):
         for category in self.categorical_data:
             user_data = one_hot_encode(user_data, category)
 
-        # Grab some useful data before dropping from independant variables
+        # Grab some useful data before dropping from independent variables
         self.Y_test = user_data['Enrichment']
         accesion_numbers = user_data['Accesion Number']
 
@@ -157,63 +160,46 @@ class data_base(object):
         self.X_train = self.X_train.drop('Accesion Number', 1)
         self.X_test = self.X_test.drop('Accesion Number', 1)
 
-    def calculateEnrichment(self, protein_abundance, bound_fraction, label):
-        """Calculates new enrichment values using a simple mathematical formula
-
+    def calculateEnrichmentAndUnboundValues(self, protein_abundance, bound_fraction, label):
+        """Calculates new enrichment values and unbound protein abundances using a simple mathematical formula
         Args:
             :param protein_abundance (pd DataFrame): quantifies presence of all proteins in solution
             :param bound_fraction (pd DataFrame): quantifies proteins that are bound to protein corona 
-            :param labels (pd Series): column labels to be preserved 
+            :param label (pd Series): column labels to be preserved
         Returns:
-            :enrichment (pd Series): pd Series that contains newly calculated Enrichment values 
+            :enrichment (pd Series): pd Series that contains newly calculated Enrichment values
+            :unbound
         """
-        # :NOTE:Keep in mind 'Bound Fraction' is a fraction
-        
-        #Perform the calculations via formula given by Professor Wheeler 
-        enrichment = [] #this will be converted to a pandas Series later
 
-        ##### These values are scaled with MinMaxScaler #####
-        #normalizedProteinAbundance = normalize_and_reshape(protein_abundance, label)
-        #normalizedBoundFraction = normalize_and_reshape(bound_fraction, label)
+        enrichment = []
+        unbound = []
 
-        ##### These values are scaled with Z Score Normalization #####
-        #normalizedProteinAbundance = self.zScoreNormalization(protein_abundance, label)
-        #normalizedBoundFraction = self.zScoreNormalization(bound_fraction, label)
+        normalizedProteinAbundance = normalize_and_reshape(protein_abundance, label)
+        normalizedBoundFraction = normalize_and_reshape(bound_fraction, label)
 
-        #### These values are scaled with Max Absolute Scaler ####
-        normalizedProteinAbundance = self.maxAbsScaler(protein_abundance, label)
-        normalizedBoundFraction = self.maxAbsScaler(bound_fraction, label)
-
-
-        #Loop through the values and generate corresponding Enrichment Factors 
+        # Loop through the values and generate corresponding Enrichment Factors
+        # create an Unbound Fraction pandas Series
         for ind in protein_abundance.index:
             proteinAbundance = normalizedProteinAbundance['Protein Abundance'][ind]
             boundFraction = normalizedBoundFraction['Bound Fraction'][ind]
-            unboundFraction = proteinAbundance - boundFraction
-            newEnrichmentFactor = boundFraction/unboundFraction
+            unboundFractionVal = proteinAbundance - boundFraction
+            newEnrichmentFactor = boundFraction/unboundFractionVal
             enrichment.append(newEnrichmentFactor)
-            #print(protein_abundance['Protein Abundance'][ind])
-            #print(bound_fraction['Bound Fraction'][ind])
-            #print(proteinAbundance)
-            #print(boundFraction)
-            #print(unboundFraction)
-            #print(newEnrichmentFactor)
-        classifiedProteins = classify(enrichment, self._ENRICHMENT_SPLIT_VALUE)
-        #return enrichment
+            unbound.append(unboundFractionVal)
+        return pd.Series(enrichment), pd.Series(unbound)
 
     def maxAbsScaler(self, data, labels):
         transformed = preprocessing.MaxAbsScaler().fit_transform(data)
         print(transformed)
         return transformed
-        
-            
+
     def zScoreNormalization(self, data, labels):
         df_std = data.copy()
 
         for column in df_std.columns:
-             df_std[column] = (df_std[column] - df_std[column].mean()) / df_std[column].std()
-        
+            df_std[column] = (df_std[column] - df_std[column].mean()) / df_std[column].std()
         print(df_std)
+
         return df_std
 
     def stratified_data_split(self, test_size=0.0):

@@ -25,7 +25,8 @@ import os
 import math
 import pdb
 
-def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
+
+def pipeline(db, test_percentage=0.1, optimize=False, RFECV=True):
     """
     Runs the pipeline. Trains and evaluates the estimator, outputs metrics and
     information about the model performance.
@@ -44,10 +45,9 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
         # We split our own data for training and testing if user isn't predicting their own data
         db.stratified_data_split(test_percentage)
 
-    #import pdb;
-    db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_mask.txt', db.X_train, db.X_test)
+    # import pdb;
+    # db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_mask.txt', db.X_train, db.X_test)
     # overloaded RandomForestClassifier with coef
-    breakpoint()
     est = predictor_utils.RandomForestClassifierWithCoef(
                             n_estimators=1000,
                             bootstrap=True,
@@ -56,18 +56,15 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
                             random_state=data_utils.random.randint(1, 2**8)
                             )
     if optimize:
-        breakpoint()
         print("optimize")
         predictor_utils.optimize(est, db.X_train, db.Y_train)
         sys.exit(0)
     if RFECV:
-        breakpoint()
         print('RFECV')
         predictor_utils.recursive_feature_elimination(est, db.X_train, db.Y_train, 'tst.txt')
         sys.exit(0)
 
     est.fit(db.X_train, db.Y_train)
-    breakpoint()
     probability_prediction = est.predict_proba(db.X_test)[:,1]
 
     # validator.y_randomization_test(est, db) #run y_randomization_test
@@ -100,9 +97,8 @@ if __name__ == '__main__':
 
     # Initialize our database
     db = data_utils.data_base()
-    #This is the newly reformatted database that is being tested right now 
+    # This is the newly reformatted database that is being tested right now
     db.raw_data = "Reformatted_Files/reformatted_database.csv"
-    #breakpoint()
     db.clean_raw_data()
 
     # To use our data to predict yours, set your data below and uncomment:
