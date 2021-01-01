@@ -74,7 +74,6 @@ class data_base(object):
     _ENRICHMENT_SPLIT_VALUE = 1  # enrichment threshold to classify as bound or unbound
     categorical_data = ['Enzyme Commission Number', 'Particle Size', 'Particle Charge', 'Solvent Cysteine Concentration', 'Solvent NaCl Concentration']
     # columns_to_drop = ['Protein Length', 'Sequence', 'Accesion Number', 'Bound Fraction']
-    # new set of parameters to drop that are not necessary for the model
     columns_to_drop = ['Protein Length', 'Sequence', 'Accesion Number']
 
     def __init__(self):
@@ -111,13 +110,7 @@ class data_base(object):
         # Calculate new enrichment values from Protein Abundance and Bound Fraction values
         self.Y_enrichment, unbound_fraction = self.calculateEnrichmentAndUnboundValues(protein_abundance, bound_fraction
                                                                                        , accesion_numbers)
-
-        print(unbound_fraction)
-        self.clean_X_data.append(unbound_fraction, ignore_index=True)
-        pd.set_option("display.max_rows", None, "display.max_columns", None)
-        print(self.clean_X_data.columns.values)
-        # print(tabulate(self.clean_X_data, headers='keys', tablefmt='psql'))
-        # pretty print all values and make sure that the Unbound Fraction column can be seen
+        self.clean_X_data = pd.concat([self.clean_X_data, unbound_fraction], axis=1)
 
         # drop useless columns
         for column in self.columns_to_drop:
@@ -168,17 +161,15 @@ class data_base(object):
             :param label (pd Series): column labels to be preserved
         Returns:
             :enrichment (pd Series): pd Series that contains newly calculated Enrichment values
-            :unbound
+            :unbound (pd Dataframe): pd Series that contains Unbound Fraction values
         """
-
         enrichment = []
         unbound = []
 
         normalizedProteinAbundance = normalize_and_reshape(protein_abundance, label)
         normalizedBoundFraction = normalize_and_reshape(bound_fraction, label)
 
-        # Loop through the values and generate corresponding Enrichment Factors
-        # create an Unbound Fraction pandas Series
+        # Loop through and generate corresponding Enrichment Factors
         for ind in protein_abundance.index:
             proteinAbundance = normalizedProteinAbundance['Protein Abundance'][ind]
             boundFraction = normalizedBoundFraction['Bound Fraction'][ind]
@@ -186,7 +177,13 @@ class data_base(object):
             newEnrichmentFactor = boundFraction/unboundFractionVal
             enrichment.append(newEnrichmentFactor)
             unbound.append(unboundFractionVal)
-        return pd.Series(enrichment), pd.Series(unbound)
+
+        # Add a header value of 'Unbound Fraction' to name parameter
+        unbound = pd.DataFrame(unbound).reset_index()
+        unbound = unbound.drop(unbound.columns[[0]], axis=1)
+        unbound.columns = ['Unbound Fraction']
+        print(unbound)
+        return pd.Series(enrichment), unbound
 
     def maxAbsScaler(self, data, labels):
         transformed = preprocessing.MaxAbsScaler().fit_transform(data)
