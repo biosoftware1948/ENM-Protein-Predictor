@@ -38,6 +38,7 @@ def optimize(model, X_train, Y_train):
     Returns:
         None
     """
+    print("using optimization")
     # add whatever your heart desires to param grid, keep in mind its an incredibly inefficient algorithm
     param_grid = {
         'n_estimators': [2500],
@@ -71,7 +72,7 @@ def recursive_feature_elimination(model, X_train, Y_train, mask_file):
     dir_path = os.path.dirname(os.path.realpath(__file__))
     mask_file = os.path.join(dir_path, mask_file)
 
-    selector = RFECV(estimator=model, step=1, cv=10, scoring='f1', verbose=1)
+    selector = RFECV(estimator=model, step=5, cv=10, scoring='f1', verbose=1)
     selector = selector.fit(X_train, Y_train)
     print("selector support: \n {} \n selector ranking: \n {}".format(selector.support_, selector.ranking_))
     print("Optimal number of features: \n {} \n Selector grid scores: \n {} \n".format(selector.n_features_, selector.grid_scores_))
