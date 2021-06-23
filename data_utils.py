@@ -6,7 +6,6 @@ and cleaning. It also contains functions that help us work with our data.
 import os
 import pandas as pd
 import numpy as np
-from tabulate import tabulate
 import sklearn
 from sklearn import preprocessing, model_selection #StandardScaler
 # from sklearn.model_selection import cross_validate
@@ -104,6 +103,11 @@ class data_base(object):
 
         # Grab some useful data before dropping from independent variables
         protein_abundance = fill_nan(pd.DataFrame(self.clean_X_data['Protein Abundance']), 'Protein Abundance')
+
+        # with pd.option_context('display.max_rows', None, 'display.max_columns',
+                               # None):  # more options can be specified also
+            # print(protein_abundance)
+
         bound_fraction = fill_nan(pd.DataFrame(self.clean_X_data['Bound Fraction']), 'Bound Fraction')
         accesion_numbers = self.clean_X_data['Accesion Number']
 
@@ -111,6 +115,9 @@ class data_base(object):
         self.Y_enrichment, unbound_fraction = self.calculateEnrichmentAndUnboundValues(protein_abundance, bound_fraction
                                                                                        , accesion_numbers)
         self.clean_X_data = pd.concat([self.clean_X_data, unbound_fraction], axis=1)
+
+        # with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
+        #    print(self.clean_X_data)
 
         # drop useless columns
         for column in self.columns_to_drop:
@@ -178,11 +185,10 @@ class data_base(object):
             enrichment.append(newEnrichmentFactor)
             unbound.append(unboundFractionVal)
 
-        # Add a header value of 'Unbound Fraction' to name parameter
+        # return the unbound along with the enrichment values
         unbound = pd.DataFrame(unbound).reset_index()
         unbound = unbound.drop(unbound.columns[[0]], axis=1)
         unbound.columns = ['Unbound Fraction']
-        print(unbound)
         return pd.Series(enrichment), unbound
 
     def maxAbsScaler(self, data, labels):

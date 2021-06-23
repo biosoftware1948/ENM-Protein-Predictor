@@ -56,6 +56,12 @@ def optimize(model, X_train, Y_train):
     print("Best parameters: \n {}".format(CV_est.best_params_))
 
 
+def column_index(df, query_cols):
+    cols = df.columns.values
+    sidx = np.argsort(cols)
+    return sidx[np.searchsorted(cols, query_cols, sorter=sidx)]
+
+
 def recursive_feature_elimination(model, X_train, Y_train, mask_file):
     """Runs RFECV with 5 folds, stores optimum features
     useful for feature engineering in a text file as a binary mask
@@ -72,10 +78,43 @@ def recursive_feature_elimination(model, X_train, Y_train, mask_file):
     dir_path = os.path.dirname(os.path.realpath(__file__))
     mask_file = os.path.join(dir_path, mask_file)
 
-    selector = RFECV(estimator=model, step=5, cv=10, scoring='f1', verbose=1)
+    # feature_index = ''
+    features = []
+
+    # selector = RFECV(estimator=model, step=1, cv=10, scoring='f1', verbose=1)
+    selector = RFECV(estimator=model, step=1, cv=5, scoring='f1', verbose=1)
     selector = selector.fit(X_train, Y_train)
+
+    print("Type of selector --> " + str(type(selector)))
+
+    feature_index = selector.get_support(indices=True)
+    print("Indexes from feature_index --> " + str(feature_index) + "\n")
+    print("type of feature_index --> " + str(type(feature_index)))
+    keys = dict(enumerate(feature_index.flatten(), 1))
+    print("list of keys:\n {}".format(keys.keys()))
+
+    # BUG HAPPENS HERE #
+    # UNKNOWN KEY OF 8 for some reason ##
+    print("This is X-Train --> " + str(list(X_train)))
+    for index in feature_index:
+        print("Index: " + str(index))
+        features.append(X_train[index])
+
+    for num, i in enumerate(selector.get_support(), start=0):
+        print("nice")
+        if i is True:
+            feature_index.append(str(num))
+
+    for num, i in enumerate(X_train.columns.values, start=0):
+        print('huh')
+        if str(num) in feature_index:
+            features.append(X_train.columns.values[num])
+
     print("selector support: \n {} \n selector ranking: \n {}".format(selector.support_, selector.ranking_))
     print("Optimal number of features: \n {} \n Selector grid scores: \n {} \n".format(selector.n_features_, selector.grid_scores_))
+    print("Features Indexes: \n{}\n".format(feature_index))
+    print("Feature Names: \n{}".format(features))
+
     # write optimum binary mask to text file
     with open(mask_file, 'w') as f:
         for item in selector.support_:

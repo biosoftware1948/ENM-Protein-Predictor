@@ -47,6 +47,7 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=True):
 
     # import pdb;
     # db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_mask.txt', db.X_train, db.X_test)
+    # db.X_train, db.X_test = data_utils.apply_RFECV_mask('tst.txt', db.X_train, db.X_test)
     # overloaded RandomForestClassifier with coef
     est = predictor_utils.RandomForestClassifierWithCoef(
                             n_estimators=1000,
@@ -61,7 +62,8 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=True):
         sys.exit(0)
     if RFECV:
         print('RFECV')
-        predictor_utils.recursive_feature_elimination(est, db.X_train, db.Y_train, 'tst.txt')
+        # predictor_utils.recursive_feature_elimination(est, db.X_train, db.Y_train, 'tst.txt')
+        predictor_utils.recursive_feature_elimination(est, db.X_train, db.Y_train, 'tst3.txt')
         sys.exit(0)
 
     est.fit(db.X_train, db.Y_train)
