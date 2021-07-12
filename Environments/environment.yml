@@ -1,0 +1,7 @@
+name: research
+
+dependencies:
+  - python=3.8.0
+  - pandas=1.2.5
+  - scikit-learn=0.24.2
+  - matplotlib=3.3.4
