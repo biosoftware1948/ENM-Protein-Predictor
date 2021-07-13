@@ -7,7 +7,7 @@ import os
 import pandas as pd
 import numpy as np
 import sklearn
-from sklearn import preprocessing, model_selection #StandardScaler
+from sklearn import preprocessing, model_selection  # StandardScaler
 # from sklearn.model_selection import cross_validate
 import random
 import csv
@@ -115,9 +115,6 @@ class data_base(object):
         self.Y_enrichment, unbound_fraction = self.calculateEnrichmentAndUnboundValues(protein_abundance, bound_fraction
                                                                                        , accesion_numbers)
         self.clean_X_data = pd.concat([self.clean_X_data, unbound_fraction], axis=1)
-
-        # with pd.option_context('display.max_rows', None, 'display.max_columns', None):  # more options can be specified also
-        #    print(self.clean_X_data)
 
         # drop useless columns
         for column in self.columns_to_drop:
@@ -383,6 +380,7 @@ class data_base(object):
         else:
             self._predict = path
 
+
 def normalize_and_reshape(data, labels):
     """Normalize and reshape the data by columns while preserving labels
     information
@@ -398,6 +396,7 @@ def normalize_and_reshape(data, labels):
     data = pd.concat([labels, data], axis=1)
     data.reset_index(drop=True, inplace=True)
     return data
+
 
 def classify(data, cutoff):
     """

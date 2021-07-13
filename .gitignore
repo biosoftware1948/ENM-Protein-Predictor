@@ -11,6 +11,6 @@ Predict.py
 output.zip
 
 prediction_probability.csv
-tst.txt
+Input_Files/10-fold-mask.txt
 
-tst2.txt
+Input_Files/5-fold-mask.txt
