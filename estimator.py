@@ -20,7 +20,6 @@ import predictor_utils
 import validation_utils
 import sys
 import json
-import numpy as np
 import os
 import math
 import pdb
@@ -46,8 +45,9 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=True):
         db.stratified_data_split(test_percentage)
 
     # import pdb;
+    # apply the RFECV mask to only keep selected features from the RFECV algorithm
     # db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_mask.txt', db.X_train, db.X_test)
-    # db.X_train, db.X_test = data_utils.apply_RFECV_mask('tst.txt', db.X_train, db.X_test)
+    # db.X_train, db.X_test = data_utils.apply_RFECV_mask('10-fold-mask.txt', db.X_train, db.X_test)
     # overloaded RandomForestClassifier with coef
     est = predictor_utils.RandomForestClassifierWithCoef(
                             n_estimators=1000,
@@ -62,7 +62,7 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=True):
         sys.exit(0)
     if RFECV:
         print('RFECV')
-        # predictor_utils.recursive_feature_elimination(est, db.X_train, db.Y_train, 'tst.txt')
+        # predictor_utils.recursive_feature_elimination(est, db.X_train, db.Y_train, '10-fold-mask.txt')
         predictor_utils.recursive_feature_elimination(est, db.X_train, db.Y_train, 'tst3.txt')
         sys.exit(0)
 
