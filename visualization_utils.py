@@ -281,6 +281,20 @@ class visualize_data(object):
         plt.show()
 
 
+def visualize_rfecv(grid_scores):
+    """Plots the accuracy obtained with every number of features used
+    Args:
+        :param: grid_scores (ndarray): contains cross-validation scores
+    Returns: nothing
+    """
+    plt.figure(figsize=(16, 9))
+    plt.title('Recursive Feature Elimination with Cross-Validation', fontsize=18, fontweight='bold', pad=20)
+    plt.xlabel('Number of features selected', fontsize=14, labelpad=20)
+    plt.ylabel('% Correct Classification', fontsize=14, labelpad=20)
+    plt.plot(range(1, len(grid_scores) + 1), grid_scores, color='#303F9F', linewidth=3)
+    plt.show()
+
+
 if __name__ == "__main__":
     db = data_utils.data_base()
     db.raw_data = "Input_Files/database.csv"
