@@ -25,7 +25,7 @@ import math
 import pdb
 
 
-def pipeline(db, test_percentage=0.1, optimize=False, RFECV=True):
+def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
     """
     Runs the pipeline. Trains and evaluates the estimator, outputs metrics and
     information about the model performance.
@@ -44,10 +44,14 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=True):
         # We split our own data for training and testing if user isn't predicting their own data
         db.stratified_data_split(test_percentage)
 
-    # import pdb;
     # apply the RFECV mask to only keep selected features from the RFECV algorithm
+    db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_new_mask.txt', db.X_train, db.X_test)
+    print("This is x_train with RFECV features: \n" + str(db.X_train) + "\n")
+    print("This is x_test with RFECV features: \n" + str(db.X_test) + "\n")
+    print("Successfully identified optimal features\n")
+    sys.exit(0)
     # db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_mask.txt', db.X_train, db.X_test)
-    # db.X_train, db.X_test = data_utils.apply_RFECV_mask('10-fold-mask.txt', db.X_train, db.X_test)
+
     # overloaded RandomForestClassifier with coef
     est = predictor_utils.RandomForestClassifierWithCoef(
                             n_estimators=1000,
