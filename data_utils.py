@@ -33,16 +33,39 @@ def apply_RFECV_mask(mask, *args):
     with open(mask, 'r') as f:
         reader = csv.reader(f)
         column_mask = list(reader)[0]
+    # print("Length of column mask:" + str(len(column_mask)))
+    # print("This is the column mask as a list: \n" + str(column_mask) + "\n")
     # apply mask to columns
     column_indexes = []
     for dataframe in args:
-        assert len(column_mask) == len(list(dataframe)), 'mask length {} does not match dataframe length {}'.format(len(column_mask), len(list(dataframe)))
+        if len(column_mask) != len(list(dataframe)):
+            column_mask = remove_extra_entries(column_mask)
+            assert len(column_mask) == len(list(dataframe)), 'mask length {} does not match dataframe length {}'\
+                .format(len(column_mask), len(list(dataframe)))
+
         for i, col in enumerate(column_mask):
             if col.strip() == 'False':
                 column_indexes.append(i)
 
         updated_args.append(dataframe.drop(dataframe.columns[column_indexes], axis=1))
     return updated_args
+
+
+def remove_extra_entries(mask):
+    """Remove extra entries like '' or '\n' in the binary mask iff the length of mask does not match the corresponding
+    dataframe length
+
+    Args:
+        :param: mask (array): the binary mask as a list of values
+    Returns: mask (array): the binary mask with extraneous values removed from end of list
+    """
+    for i, col in reversed(list(enumerate(mask))):
+        stripped_col = col.strip()
+        if stripped_col == "True" or stripped_col == "False":
+            break
+        else:
+            del mask[i]
+    return mask
 
 
 class data_base(object):
@@ -104,10 +127,6 @@ class data_base(object):
         # Grab some useful data before dropping from independent variables
         protein_abundance = fill_nan(pd.DataFrame(self.clean_X_data['Protein Abundance']), 'Protein Abundance')
 
-        # with pd.option_context('display.max_rows', None, 'display.max_columns',
-                               # None):  # more options can be specified also
-            # print(protein_abundance)
-
         bound_fraction = fill_nan(pd.DataFrame(self.clean_X_data['Bound Fraction']), 'Bound Fraction')
         accesion_numbers = self.clean_X_data['Accesion Number']
 
@@ -136,7 +155,7 @@ class data_base(object):
         Returns:
             None
         """
-        # Categorize Interprot identifiers n hot encoding
+        # Categorize Interprot identifiers and hot encoding
         user_data = multi_label_encode(user_data, 'Interprot')
         # one hot encode categorical data
         for category in self.categorical_data:
