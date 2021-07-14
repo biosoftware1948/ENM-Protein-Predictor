@@ -107,5 +107,3 @@ def recursive_feature_elimination(model, X_train, Y_train, mask_file):
     with open(mask_file, 'w') as f:
         for item in selector.support_:
             f.write('{}, '.format(item))
-
-def visualize
