@@ -21,8 +21,6 @@ import validation_utils
 import sys
 import json
 import os
-import math
-import pdb
 
 
 def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
@@ -46,11 +44,6 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
 
     # apply the RFECV mask to only keep selected features from the RFECV algorithm
     db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_new_mask.txt', db.X_train, db.X_test)
-    print("This is x_train with RFECV features: \n" + str(db.X_train) + "\n")
-    print("This is x_test with RFECV features: \n" + str(db.X_test) + "\n")
-    print("Successfully identified optimal features\n")
-    sys.exit(0)
-    # db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_mask.txt', db.X_train, db.X_test)
 
     # overloaded RandomForestClassifier with coef
     est = predictor_utils.RandomForestClassifierWithCoef(
@@ -65,18 +58,17 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
         predictor_utils.optimize(est, db.X_train, db.Y_train)
         sys.exit(0)
     if RFECV:
-        print('RFECV')
-        # predictor_utils.recursive_feature_elimination(est, db.X_train, db.Y_train, '10-fold-mask.txt')
-        predictor_utils.recursive_feature_elimination(est, db.X_train, db.Y_train, 'tst3.txt')
+        predictor_utils.recursive_feature_elimination(est, db.X_train, db.Y_train, '_new_mask.txt')
         sys.exit(0)
 
     est.fit(db.X_train, db.Y_train)
     probability_prediction = est.predict_proba(db.X_test)[:,1]
 
-    # validator.y_randomization_test(est, db) #run y_randomization_test
+    # validator.y_randomization_test(est, db)  # run y_randomization_test
     val = validation_utils.validation_metrics(db.Y_test, probability_prediction)
     classification_information = (probability_prediction, db.Y_test, db.test_accesion_numbers, db.X_test)
     feature_importances = dict(zip(list(db.X_train), est.feature_importances_))
+
     # Remove comments to visualize roc curve and youden index
     # val.youden_index()
     # val.roc_curve()
@@ -84,6 +76,8 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
 
 
 class NpEncoder(json.JSONEncoder):
+    """Because json doesn't recognize NumPy data types, this handles simple conversions
+    from NumPy data types to Python data types that json can recognize and therefore serialize"""
     def default(self, obj):
         if isinstance(obj, np.integer):
             return int(obj)
@@ -104,7 +98,7 @@ if __name__ == '__main__':
     # Initialize our database
     db = data_utils.data_base()
     # This is the newly reformatted database that is being tested right now
-    db.raw_data = "Reformatted_Files/reformatted_database.csv"
+    db.raw_data = "Reformatted_Files/_new_database.csv"
     db.clean_raw_data()
 
     # To use our data to predict yours, set your data below and uncomment:
@@ -139,7 +133,6 @@ if __name__ == '__main__':
         metrics = pipeline(db)
         # hold scores and importance data in json format
         results["Run_" + str(i)] = {'scores': metrics[SCORES], 'importances': metrics[IMPORTANCES]}
-        # print(results)
         # hold classification information in arrays to output to excel file
         data_utils.hold_in_memory(classification_information, metrics[INFORMATION], i, test_size)
 
