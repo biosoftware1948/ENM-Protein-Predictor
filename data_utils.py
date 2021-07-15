@@ -85,7 +85,8 @@ class data_base(object):
        Attributes:
             :self._raw_data (Pandas Dataframe): Holds raw data in the same form as excel file. initialized after fetch_raw_data() is called
             :self._clean_X_data (Pandas Dataframe): Holds cleaned and prepared X data.
-            :self._Y_enrichment (numpy array): Holds continous Y values
+            :self._target (np.array): holds target values for predictions using regression
+            :self._Y_enrichment (numpy array): Holds continous Y values # REMOVED/COMMENTED
             :self._X_train (Pandas Dataframe): Holds the X training data
             :self._X_test (Pandas Dataframe): Holds the X test data
             :self._Y_train (Pandas Dataframe): Holds the Y training data
@@ -93,15 +94,13 @@ class data_base(object):
             :self._test_accesion_numbers (list): holds the accesion_numbers
             in the test set
         """
-    _ENRICHMENT_SPLIT_VALUE = 1  # enrichment threshold to classify as bound or unbound
     categorical_data = ['Enzyme Commission Number', 'Particle Size', 'Particle Charge', 'Solvent Cysteine Concentration', 'Solvent NaCl Concentration']
-    # columns_to_drop = ['Protein Length', 'Sequence', 'Accesion Number', 'Bound Fraction']
     columns_to_drop = ['Protein Length', 'Sequence', 'Accesion Number']
 
     def __init__(self):
         self._raw_data = None
         self._clean_X_data = None
-        self._Y_enrichment = None
+        # self._Y_enrichment = None
         self._target = None
         self._X_train = None
         self._Y_train = None
@@ -118,31 +117,27 @@ class data_base(object):
         Args, Returns: None
         """
         self.clean_X_data = self.raw_data
-        # Categorize Interprot identifiers n hot encoding
-        self.clean_X_data = multi_label_encode(self.clean_X_data, 'Interprot') # encodes interprot numbers
-        # one hot encode categorical data2
+        # one hot encode categorical data
         for category in self.categorical_data:
             self.clean_X_data = one_hot_encode(self.clean_X_data, category)
 
         # Grab some useful data before dropping from independent variables
         protein_abundance = fill_nan(pd.DataFrame(self.clean_X_data['Protein Abundance']), 'Protein Abundance')
 
-        bound_fraction = fill_nan(pd.DataFrame(self.clean_X_data['Bound Fraction']), 'Bound Fraction')
+        # bound_fraction = fill_nan(pd.DataFrame(self.clean_X_data['Bound Fraction']), 'Bound Fraction')
         accesion_numbers = self.clean_X_data['Accesion Number']
-
-        # Calculate new enrichment values from Protein Abundance and Bound Fraction values
-        self.Y_enrichment, unbound_fraction = self.calculateEnrichmentAndUnboundValues(protein_abundance, bound_fraction
-                                                                                       , accesion_numbers)
-        self.clean_X_data = pd.concat([self.clean_X_data, unbound_fraction], axis=1)
 
         # drop useless columns
         for column in self.columns_to_drop:
             self.clean_X_data = self.clean_X_data.drop(column, 1)   
 
+        # INCLUDE A FUNCTION TO CALCULATE THE BOUND FRACTION (TRAINING SET)
+
         self.clean_X_data = fill_nan(self.clean_X_data, 'Protein Abundance')
         self.clean_X_data = normalize_and_reshape(self.clean_X_data, accesion_numbers)
-        self._target = classify(self.Y_enrichment, self._ENRICHMENT_SPLIT_VALUE)  # enrichment or nsaf
         self.X_train = self.clean_X_data
+        # I need to set the Y-training target data to something else (Bound Fraction???)
+        # self._target = classify(self.Y_enrichment, self._ENRICHMENT_SPLIT_VALUE)  # enrichment or nsaf
         self.Y_train = self.target
 
     def clean_user_test_data(self, user_data):
@@ -156,13 +151,15 @@ class data_base(object):
             None
         """
         # Categorize Interprot identifiers and hot encoding
-        user_data = multi_label_encode(user_data, 'Interprot')
+        # user_data = multi_label_encode(user_data, 'Interprot')
+
         # one hot encode categorical data
         for category in self.categorical_data:
             user_data = one_hot_encode(user_data, category)
 
         # Grab some useful data before dropping from independent variables
-        self.Y_test = user_data['Enrichment']
+        # INCLUDE SOMETHING TO CALCULATE THE Y_TEST FOR BOUND FRACTION
+        # self.Y_test = user_data['Enrichment']
         accesion_numbers = user_data['Accesion Number']
 
         for column in self.columns_to_drop:
@@ -170,56 +167,14 @@ class data_base(object):
 
         user_data = fill_nan(user_data, 'Protein Abundance')
         self.X_test = normalize_and_reshape(user_data, accesion_numbers)
-        self.Y_test = classify(self.Y_test, self._ENRICHMENT_SPLIT_VALUE) # enrichment or nsaf
+
+        # INCLUDE TEST SET FOR THE BOUND FRACTION
+        # self.Y_test = classify(self.Y_test, self._ENRICHMENT_SPLIT_VALUE) # enrichment or nsaf
+
         # Get accession number
         self.test_accesion_numbers = self.X_test['Accesion Number']
         self.X_train = self.X_train.drop('Accesion Number', 1)
         self.X_test = self.X_test.drop('Accesion Number', 1)
-
-    def calculateEnrichmentAndUnboundValues(self, protein_abundance, bound_fraction, label):
-        """Calculates new enrichment values and unbound protein abundances using a simple mathematical formula
-        Args:
-            :param protein_abundance (pd DataFrame): quantifies presence of all proteins in solution
-            :param bound_fraction (pd DataFrame): quantifies proteins that are bound to protein corona 
-            :param label (pd Series): column labels to be preserved
-        Returns:
-            :enrichment (pd Series): pd Series that contains newly calculated Enrichment values
-            :unbound (pd Dataframe): pd Series that contains Unbound Fraction values
-        """
-        enrichment = []
-        unbound = []
-
-        normalizedProteinAbundance = normalize_and_reshape(protein_abundance, label)
-        normalizedBoundFraction = normalize_and_reshape(bound_fraction, label)
-
-        # Loop through and generate corresponding Enrichment Factors
-        for ind in protein_abundance.index:
-            proteinAbundance = normalizedProteinAbundance['Protein Abundance'][ind]
-            boundFraction = normalizedBoundFraction['Bound Fraction'][ind]
-            unboundFractionVal = proteinAbundance - boundFraction
-            newEnrichmentFactor = boundFraction/unboundFractionVal
-            enrichment.append(newEnrichmentFactor)
-            unbound.append(unboundFractionVal)
-
-        # return the unbound along with the enrichment values
-        unbound = pd.DataFrame(unbound).reset_index()
-        unbound = unbound.drop(unbound.columns[[0]], axis=1)
-        unbound.columns = ['Unbound Fraction']
-        return pd.Series(enrichment), unbound
-
-    def maxAbsScaler(self, data, labels):
-        transformed = preprocessing.MaxAbsScaler().fit_transform(data)
-        print(transformed)
-        return transformed
-
-    def zScoreNormalization(self, data, labels):
-        df_std = data.copy()
-
-        for column in df_std.columns:
-            df_std[column] = (df_std[column] - df_std[column].mean()) / df_std[column].std()
-        print(df_std)
-
-        return df_std
 
     def stratified_data_split(self, test_size=0.0):
         """Randomized stratified shuffle split that sets training and testing data
@@ -457,8 +412,8 @@ def fill_nan(data, column):
     """ Fills nan values with mean in specified column.
 
     Args:
-        :param data (pandas Dataframe): Dataframe containing column with nan values
-        :param column (String): specifying column to fill_nans
+        :param: data (pandas Dataframe): Dataframe containing column with nan values
+        :param: column (String): specifying column to fill_nans
     Returns:
         :data (pandas Dataframe): Containing the column with filled nan values
     """
@@ -472,6 +427,23 @@ def fill_nan(data, column):
             count += 1
             total += val
     data[column] = data[column].fillna(total/count)
+    return data
+
+
+def fill_zero(data, column):
+    """Fills nan values with 0's in the specified column
+
+    Args:
+        :param: data (pandas Dataframe): Dataframe containing column with nan values
+        :param: column (String): specifying column to fill_nans
+    Returns:
+        :data (pandas Dataframe): Containing the column with filled nan values
+    """
+    assert isinstance(data, pd.DataFrame), 'data argument needs to be pandas dataframe'
+    assert isinstance(column, str), 'Column must be a string'
+    data[column] = data[column].fillna(0)
+    print("Printing values from specified column to check, should contain 0's in place of NaNs.\n")
+    print(list(data[column].values))
     return data
 
 
@@ -490,42 +462,6 @@ def one_hot_encode(dataframe, category):
     dataframe = pd.concat([dataframe, dummy], axis=1)
     dataframe.drop(category, axis=1, inplace=True)
     return dataframe
-
-
-def multi_label_encode(dataframe, column):
-    """This function is used as a multilabel encoder for the Interprot numbers in the database.
-        The interprot numbers are seperated by a semi-colon. We use a multi label encoder because
-        a protein can have several function domains. This injects a multi-hot style encoding into the database
-
-        Args:
-            :param dataframe (Pandas Dataframe): Dataframe containing protein data
-            :param column: (String): Name of column to be multi-label-encoded
-        Returns:
-            :new_dataframe (Pandas Dataframe): With new multi label columns
-    """
-    dataframe.reset_index(drop=True, inplace=True)
-    interprot_identifiers = []
-    protein_ips = {}
-
-    for row, iprot in enumerate(dataframe[column].values):
-        ip_list = [i for i in iprot.split(';') if i != '']
-        protein_ips[row] = []
-        for ip in ip_list:
-            interprot_identifiers.append(ip)
-            protein_ips[row].append(ip)
-
-    categorical_df = pd.DataFrame(index=np.arange(dataframe.shape[0]), columns=set(interprot_identifiers))
-    categorical_df = categorical_df.fillna(0)
-
-    for key, val in protein_ips.items():
-        for v in val:
-            if v != 0:
-                # categorical_df.set_value(key, v, 1)
-                categorical_df.at[key, v] = 1
-
-    dataframe = dataframe.drop(column, 1)
-    new_dataframe = pd.concat([dataframe, categorical_df], axis=1)
-    return new_dataframe
 
 
 def clean_print(obj):
