@@ -284,7 +284,7 @@ class visualize_data(object):
 def visualize_rfecv(grid_scores):
     """Plots the accuracy obtained with every number of features used
     Args:
-        :param: grid_scores (ndarray): contains cross-validation scores
+        :param: grid_scores (ndarray): contains cross-validation scores from RFECV
     Returns: nothing
     """
     plt.figure(figsize=(16, 9))
@@ -293,11 +293,13 @@ def visualize_rfecv(grid_scores):
     plt.ylabel('% Correct Classification', fontsize=14, labelpad=20)
     plt.plot(range(1, len(grid_scores) + 1), grid_scores, color='#303F9F', linewidth=3)
     plt.show()
+    plt.savefig('Output_Files/rfecv_visualization.png')
 
 
 if __name__ == "__main__":
     db = data_utils.data_base()
-    db.raw_data = "Input_Files/database.csv"
+    # db.raw_data = "Input_Files/database.csv"
+    db.raw_data = "Reformatted_Files/_new_database.csv"
     db.clean_raw_data()
     v = visualize_data(db.clean_X_data, db.Y_enrichment)
     v.correlation_plot()
