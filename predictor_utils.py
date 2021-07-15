@@ -11,7 +11,6 @@ from sklearn.model_selection import GridSearchCV
 import sklearn
 import numpy as np
 import csv
-
 import visualization_utils
 
 
@@ -75,27 +74,17 @@ def recursive_feature_elimination(model, X_train, Y_train, mask_file):
     dir_path = os.path.dirname(os.path.realpath(__file__))
     mask_file = os.path.join(dir_path, mask_file)
 
-    # selector = RFECV(estimator=model, step=1, cv=10, scoring='f1', verbose=1)
     selector = RFECV(estimator=model, step=1, cv=5, scoring='f1', verbose=1)
     selector = selector.fit(X_train, Y_train)
 
     # uncomment this line to view the RFECV accuracy scores
     visualization_utils.visualize_rfecv(selector.grid_scores_)
 
-    print("Type of selector --> " + str(type(selector)))
-
+    # display optimal features
     feature_index = selector.get_support(indices=True)
     features = []
 
-    print("Indexes from feature_index --> " + str(feature_index) + "\n")
-    print("type of feature_index --> " + str(type(feature_index)))
-    keys = dict(enumerate(feature_index.flatten(), 1))
-    print("list of keys:\n {}".format(keys.keys()))
-
-    # print("This is X-Train --> " + str(list(X_train)))
-
     for index in feature_index:
-        print("Index: " + str(index))
         features.append(X_train.columns[index])
 
     print("selector support: \n {} \n selector ranking: \n {}".format(selector.support_, selector.ranking_))
