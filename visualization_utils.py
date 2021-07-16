@@ -282,10 +282,10 @@ class visualize_data(object):
 
 
 def visualize_rfecv(grid_scores):
-    """Plots the accuracy obtained with every number of features used
+    """Plots the accuracy obtained with every number of features used from RFECV
     Args:
         :param: grid_scores (ndarray): contains cross-validation scores from RFECV
-    Returns: nothing
+    Returns: a saved matplotlib graph of the rfecv_visualization
     """
     plt.figure(figsize=(16, 9))
     plt.title('Recursive Feature Elimination with Cross-Validation', fontsize=18, fontweight='bold', pad=20)
@@ -297,6 +297,7 @@ def visualize_rfecv(grid_scores):
 
 
 if __name__ == "__main__":
+    # This will need to be rewritten overall as a module since enrichment factors are no longer relevant
     db = data_utils.data_base()
     # db.raw_data = "Input_Files/database.csv"
     db.raw_data = "Reformatted_Files/_new_database.csv"
