@@ -23,36 +23,39 @@ import json
 import os
 
 
-def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
+def pipeline(db, test_percentage=0.1, optimize=False, RFECV=True):
     """
     Runs the pipeline. Trains and evaluates the estimator, outputs metrics and
     information about the model performance.
 
     Args:
-        :param db (database obj): The database object, passed from main.
+        :param: db (database obj): The database object, passed from main.
         Information about this class can be found in data_utils
-        :param optimize (bool): Set to true to run Grid search
-        :param RFECV (bool): Set to true to run RFECV
+        :param: optimize (bool): Set to true to run Grid search
+        :param: RFECV (bool): Set to true to run RFECV
     Returns:
         :val.well_rounded_validation() (dict): returns a dictionary of validation metrics
         :feature_importances (dict): contains a dictionary of feature importances
         :classification_information (dict): information about the predictions
     """
+    # Reasons for potentially not using stratified_data_split:
+    # - while the dataset might not be balanced enough, it is small enough that the trees might not be able to grow
+    #   deep enough and thus skew the majority vote in the end
     if db.predict is None:
         # We split our own data for training and testing if user isn't predicting their own data
         db.stratified_data_split(test_percentage)
 
     # apply the RFECV mask to only keep selected features from the RFECV algorithm
-    db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_new_mask.txt', db.X_train, db.X_test)
+    # db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_new_mask.txt', db.X_train, db.X_test)
 
-    # overloaded RandomForestClassifier with coef
-    est = predictor_utils.RandomForestClassifierWithCoef(
-                            n_estimators=1000,
-                            bootstrap=True,
-                            min_samples_split=4,
-                            n_jobs=-1,
-                            random_state=data_utils.random.randint(1, 2**8)
-                            )
+    est = predictor_utils.RandomForestRegressorWithCoef(
+        n_estimators=1000,
+        bootstrap=True,
+        min_samples_split=4,
+        n_jobs=-1,
+        random_state=data_utils.random.randint(1, 2**8)
+    )
+
     if optimize:
         print("optimize")
         predictor_utils.optimize(est, db.X_train, db.Y_train)
@@ -112,7 +115,8 @@ if __name__ == '__main__':
     else:
         print("We use our own data")
         # If not we split our own database for training and testing
-        test_size = 302  # 10% of training data is used for testing 10% of 3012=302
+        test_size = int(db.raw_data.shape[0] * .10)
+        # test_size = 302  # 10% of training data is used for testing 10% of 3012=302
     TOTAL_TESTED_PROTEINS = test_size*iterations
     SCORES = 0
     IMPORTANCES = 1
