@@ -7,7 +7,7 @@ import os
 import pandas as pd
 import numpy as np
 import sklearn
-from sklearn import preprocessing, model_selection  # StandardScaler
+from sklearn import preprocessing, model_selection
 # from sklearn.model_selection import cross_validate
 import random
 import csv
@@ -123,8 +123,12 @@ class data_base(object):
             self.clean_X_data = one_hot_encode(self.clean_X_data, category)
 
         # Grab some useful data before dropping from independent variables
-        # protein_abundance = fill_nan(pd.DataFrame(self.clean_X_data['Protein Abundance']), 'Protein Abundance')
-        bound_fraction = fill_nan(pd.DataFrame(self.clean_X_data['Bound Fraction']), 'Bound Fraction')
+        self.clean_X_data['Bound Fraction'].fillna(self.clean_X_data['Bound Fraction'].mean())
+        # new target: predict 'Bound Fraction' (Regression)
+        self._target = self.clean_X_data['Bound Fraction'].to_numpy()
+        # self._target = classify(self.Y_enrichment, self._ENRICHMENT_SPLIT_VALUE)  # enrichment or nsaf
+        self.Y_train = self.target
+
         # self.Y_enrichment = self.clean_X_data['Enrichment']
         accesion_numbers = self.clean_X_data['Accesion Number']
 
@@ -136,10 +140,6 @@ class data_base(object):
         # self.clean_X_data = fill_zero(self.clean_X_data, 'Protein Abundance')
         self.clean_X_data = normalize_and_reshape(self.clean_X_data, accesion_numbers)
         self.X_train = self.clean_X_data
-        # I need to set the Y-training target data to something else (Bound Fraction???)
-        self._target = bound_fraction.to_numpy()
-        # self._target = classify(self.Y_enrichment, self._ENRICHMENT_SPLIT_VALUE)  # enrichment or nsaf
-        self.Y_train = self.target
 
     def clean_user_test_data(self, user_data):
         """This method makes it easy for other people to make predictions
@@ -160,7 +160,7 @@ class data_base(object):
 
         # Grab some useful data before dropping from independent variables
         # self.Y_test = user_data['Enrichment']
-        self.Y_test = user_data['Bound Fraction']
+        self.Y_test = user_data['Bound Fraction'].to_numpy()
         accesion_numbers = user_data['Accesion Number']
 
         for column in self.columns_to_drop:
@@ -169,7 +169,7 @@ class data_base(object):
         user_data = fill_nan(user_data, 'Protein Abundance')
         self.X_test = normalize_and_reshape(user_data, accesion_numbers)
 
-        # INCLUDE TEST SET FOR THE BOUND FRACTION
+        # removing Enrichment values from regression
         # self.Y_test = classify(self.Y_test, self._ENRICHMENT_SPLIT_VALUE) # enrichment or nsaf
 
         # Get accession number
@@ -188,7 +188,16 @@ class data_base(object):
         assert 1.0 >= test_size >= 0.0, "test_size must be between 0 and 1"
         assert self.predict is None, "Remove stratified_data_split() if using your own data"
 
-        self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data, self.target, test_size=test_size, stratify=self.target, random_state=int((random.random()*100)))
+        print("The types of the Y_test and Y_train sets: {} and {}\n".format(type(self.Y_test), type(self.Y_train)))
+        print("Dimensions of the Y_train set: {}".format(self.Y_train.shape))
+        print("Dimensions of the target set: {}".format(self.target.shape))
+        # print(list(self.Y_train))
+        # print(list(self.clean_X_data))
+        # pd.set_option("display.max_rows", None, "display.max_columns", None)
+        # print(self.clean_X_data)
+
+        # self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data, self.target, test_size=test_size, stratify=self.target, random_state=int((random.random()*100)))
+        self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data, self.target, test_size=test_size, random_state=int((random.random()*100)))
         self.test_accesion_numbers = self.X_test['Accesion Number']
         self.X_train = self.X_train.drop('Accesion Number', 1)
         self.X_test = self.X_test.drop('Accesion Number', 1)
