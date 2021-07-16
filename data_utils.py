@@ -85,7 +85,7 @@ class data_base(object):
        Attributes:
             :self._raw_data (Pandas Dataframe): Holds raw data in the same form as excel file. initialized after fetch_raw_data() is called
             :self._clean_X_data (Pandas Dataframe): Holds cleaned and prepared X data.
-            :self._target (np.array): holds target values for predictions using regression
+            :self._target (np.array): holds target values for predictions
             :self._Y_enrichment (numpy array): Holds continous Y values # REMOVED/COMMENTED
             :self._X_train (Pandas Dataframe): Holds the X training data
             :self._X_test (Pandas Dataframe): Holds the X test data
@@ -95,7 +95,7 @@ class data_base(object):
             in the test set
         """
     categorical_data = ['Enzyme Commission Number', 'Particle Size', 'Particle Charge', 'Solvent Cysteine Concentration', 'Solvent NaCl Concentration']
-    columns_to_drop = ['Protein Length', 'Sequence', 'Accesion Number']
+    columns_to_drop = ['Protein Length', 'Sequence', 'Accesion Number', 'Bound Fraction']
 
     def __init__(self):
         self._raw_data = None
@@ -117,26 +117,27 @@ class data_base(object):
         Args, Returns: None
         """
         self.clean_X_data = self.raw_data
+
         # one hot encode categorical data
         for category in self.categorical_data:
             self.clean_X_data = one_hot_encode(self.clean_X_data, category)
 
         # Grab some useful data before dropping from independent variables
-        protein_abundance = fill_nan(pd.DataFrame(self.clean_X_data['Protein Abundance']), 'Protein Abundance')
-
-        # bound_fraction = fill_nan(pd.DataFrame(self.clean_X_data['Bound Fraction']), 'Bound Fraction')
+        # protein_abundance = fill_nan(pd.DataFrame(self.clean_X_data['Protein Abundance']), 'Protein Abundance')
+        bound_fraction = fill_nan(pd.DataFrame(self.clean_X_data['Bound Fraction']), 'Bound Fraction')
+        # self.Y_enrichment = self.clean_X_data['Enrichment']
         accesion_numbers = self.clean_X_data['Accesion Number']
 
         # drop useless columns
         for column in self.columns_to_drop:
-            self.clean_X_data = self.clean_X_data.drop(column, 1)   
-
-        # INCLUDE A FUNCTION TO CALCULATE THE BOUND FRACTION (TRAINING SET)
+            self.clean_X_data = self.clean_X_data.drop(column, 1)
 
         self.clean_X_data = fill_nan(self.clean_X_data, 'Protein Abundance')
+        # self.clean_X_data = fill_zero(self.clean_X_data, 'Protein Abundance')
         self.clean_X_data = normalize_and_reshape(self.clean_X_data, accesion_numbers)
         self.X_train = self.clean_X_data
         # I need to set the Y-training target data to something else (Bound Fraction???)
+        self._target = bound_fraction.to_numpy()
         # self._target = classify(self.Y_enrichment, self._ENRICHMENT_SPLIT_VALUE)  # enrichment or nsaf
         self.Y_train = self.target
 
@@ -158,8 +159,8 @@ class data_base(object):
             user_data = one_hot_encode(user_data, category)
 
         # Grab some useful data before dropping from independent variables
-        # INCLUDE SOMETHING TO CALCULATE THE Y_TEST FOR BOUND FRACTION
         # self.Y_test = user_data['Enrichment']
+        self.Y_test = user_data['Bound Fraction']
         accesion_numbers = user_data['Accesion Number']
 
         for column in self.columns_to_drop:
@@ -187,7 +188,7 @@ class data_base(object):
         assert 1.0 >= test_size >= 0.0, "test_size must be between 0 and 1"
         assert self.predict is None, "Remove stratified_data_split() if using your own data"
 
-        self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data, self.target, test_size = test_size, stratify=self.target, random_state=int((random.random()*100)))
+        self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data, self.target, test_size=test_size, stratify=self.target, random_state=int((random.random()*100)))
         self.test_accesion_numbers = self.X_test['Accesion Number']
         self.X_train = self.X_train.drop('Accesion Number', 1)
         self.X_test = self.X_test.drop('Accesion Number', 1)
@@ -280,7 +281,7 @@ class data_base(object):
     def X_train(self, path):
         if isinstance(path, str) and os.path.isfile(path):
             # If trying to set to value from excel
-            self._X_train = fetch_raw_data(path)
+            self._X_train = self.fetch_raw_data(path)
         else:
             # If trying to set to already imported array
             self._X_train = path
@@ -289,7 +290,7 @@ class data_base(object):
     def X_test(self, path):
         if isinstance(path, str) and os.path.isfile(path):
             # If trying to set to value from excel
-            self._X_test = fetch_raw_data(path)
+            self._X_test = self.fetch_raw_data(path)
         else:
             # If trying to set to already imported array
             self._X_test = path
@@ -298,7 +299,7 @@ class data_base(object):
     def Y_train(self, path):
         if isinstance(path, str) and os.path.isfile(path):
             # If trying to set to value from excel
-            self._Y_train = fetch_raw_data(path)
+            self._Y_train = self.fetch_raw_data(path)
         else:
             # If trying to set to already imported array
             self._Y_train = path
@@ -307,7 +308,7 @@ class data_base(object):
     def Y_test(self, path):
         if isinstance(path, str) and os.path.isfile(path):
             # If trying to set to value from excel
-            self._Y_test = fetch_raw_data(path)
+            self._Y_test = self.fetch_raw_data(path)
         else:
             # If trying to set to already imported array
             self._Y_test = path
@@ -323,19 +324,19 @@ class data_base(object):
     def clean_X_data(self, path):
         if isinstance(path, str) and os.path.isfile(path):
             # If trying to set to value from excel
-            self.clean_X_data = fetch_raw_data(path)
+            self.clean_X_data = self.fetch_raw_data(path)
         else:
             # If trying to set to already imported array
             self._clean_X_data = path
 
-    @Y_enrichment.setter
-    def Y_enrichment(self, path):
-        if isinstance(path, str) and os.path.isfile(path):
+    # @Y_enrichment.setter
+    # def Y_enrichment(self, path):
+    #     if isinstance(path, str) and os.path.isfile(path):
             # If trying to set to value from excel
-            self._Y_enrichment = fetch_raw_data(path)
-        else:
+    #        self._Y_enrichment = fetch_raw_data(path)
+    #    else:
             # If trying to set to already imported array
-            self._Y_enrichment = path
+    #        self._Y_enrichment = path
 
     @test_accesion_numbers.setter
     def test_accesion_numbers(self, path):
@@ -370,42 +371,6 @@ def normalize_and_reshape(data, labels):
     data = pd.concat([labels, data], axis=1)
     data.reset_index(drop=True, inplace=True)
     return data
-
-
-def classify(data, cutoff):
-    """
-    This function classifies continous data.
-    In our case we classify particles as bound or unbound
-
-    Args:
-        :param data (array): array of continous data
-        :param cutoff (float): cutoff value for classification
-    Returns:
-        :classified_data(np.array): classified data
-    """
-    if not isinstance(data, np.ndarray):
-        try:
-            data = np.array(data)
-        except TypeError:
-            print("data could not be converted to type: numpy array")
-
-    boundProteinCount = 0
-    unboundProteinCount = 0
-
-    classified_data = np.empty((len(data)))
-
-    for i, val in enumerate(data):
-        if float(val) >= float(cutoff):
-            classified_data[i] = 1
-            boundProteinCount += 1
-        else:
-            classified_data[i] = 0
-            unboundProteinCount += 1 
-    
-    print("Bound Protein count: " + str(boundProteinCount))
-    print("Unbound Protein count: " + str(unboundProteinCount)) 
-
-    return classified_data
 
 
 def fill_nan(data, column):
