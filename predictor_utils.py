@@ -1,29 +1,28 @@
 """Developed by: Matthew Findlay 2017
 
-This module contains the overloaded RandomForestClassifier and methods to help
+This module contains the overloaded RandomForestRegressor and methods to help
 us with feature engineering and model optimization.
 """
 import os
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_selection import RFECV
 from sklearn.model_selection import GridSearchCV
-# from sklearn.grid_search import GridSearchCV
 import sklearn
 import numpy as np
 import csv
 import visualization_utils
 
 
-class RandomForestClassifierWithCoef(RandomForestClassifier):
+class RandomForestRegressorWithCoef(RandomForestRegressor):
     """Adds feature weights for each returned variable from the
-    sklearn RandomForestClassifier:
+    sklearn RandomForestRegressor:
     https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/ensemble/_forest.py
     """
     def fit(self, *args, **kwargs):
         """Overloaded fit method to include the feature importances
         of each variable. This is used for RFECV
         """
-        super(RandomForestClassifierWithCoef, self).fit(*args, **kwargs)
+        super(RandomForestRegressorWithCoef, self).fit(*args, **kwargs)
         self.coef_ = self.feature_importances_
 
 
