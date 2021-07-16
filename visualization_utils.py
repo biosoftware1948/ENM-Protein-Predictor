@@ -292,8 +292,8 @@ def visualize_rfecv(grid_scores):
     plt.xlabel('Number of features selected', fontsize=14, labelpad=20)
     plt.ylabel('% Correct Classification', fontsize=14, labelpad=20)
     plt.plot(range(1, len(grid_scores) + 1), grid_scores, color='#303F9F', linewidth=3)
-    plt.show()
     plt.savefig('Output_Files/rfecv_visualization.png')
+    plt.show()
 
 
 if __name__ == "__main__":

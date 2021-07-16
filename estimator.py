@@ -61,7 +61,7 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=True):
         predictor_utils.optimize(est, db.X_train, db.Y_train)
         sys.exit(0)
     if RFECV:
-        predictor_utils.recursive_feature_elimination(est, db.X_train, db.Y_train, '_new_mask.txt')
+        predictor_utils.recursive_feature_elimination(est, db.X_train, db.Y_train, 'Input_Files/_new_mask.txt')
         sys.exit(0)
 
     est.fit(db.X_train, db.Y_train)
