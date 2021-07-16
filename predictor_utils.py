@@ -73,7 +73,8 @@ def recursive_feature_elimination(model, X_train, Y_train, mask_file):
     dir_path = os.path.dirname(os.path.realpath(__file__))
     mask_file = os.path.join(dir_path, mask_file)
 
-    selector = RFECV(estimator=model, step=1, cv=5, scoring='f1', verbose=1)
+    # selector = RFECV(estimator=model, step=1, cv=5, scoring='f1', verbose=1)
+    selector = RFECV(estimator=model, step=1, cv=5, scoring='r2', verbose=1)
     selector = selector.fit(X_train, Y_train)
 
     # uncomment this line to view the RFECV accuracy scores
