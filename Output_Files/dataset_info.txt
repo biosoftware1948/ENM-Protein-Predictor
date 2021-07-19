@@ -1,0 +1,31 @@
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 3012 entries, 0 to 3011
+Data columns (total 24 columns):
+ #   Column                              Non-Null Count  Dtype  
+---  ------                              --------------  -----  
+ 0   pI                                  3012 non-null   float64
+ 1   Protein Weight                      3012 non-null   float64
+ 2   % Aromatic                          3012 non-null   float64
+ 3   % Negative                          3012 non-null   float64
+ 4   % Positive                          3012 non-null   float64
+ 5   % Hydrophilic                       3012 non-null   float64
+ 6   % Cysteine                          3012 non-null   float64
+ 7   Protein Abundance                   3012 non-null   float64
+ 8   Enzyme Commission Number_0          3012 non-null   float64
+ 9   Enzyme Commission Number_1          3012 non-null   float64
+ 10  Enzyme Commission Number_2          3012 non-null   float64
+ 11  Enzyme Commission Number_3          3012 non-null   float64
+ 12  Enzyme Commission Number_4          3012 non-null   float64
+ 13  Enzyme Commission Number_5          3012 non-null   float64
+ 14  Enzyme Commission Number_6          3012 non-null   float64
+ 15  Particle Size_10                    3012 non-null   float64
+ 16  Particle Size_100                   3012 non-null   float64
+ 17  Particle Charge_0                   3012 non-null   float64
+ 18  Particle Charge_1                   3012 non-null   float64
+ 19  Solvent Cysteine Concentration_0.0  3012 non-null   float64
+ 20  Solvent Cysteine Concentration_0.1  3012 non-null   float64
+ 21  Solvent NaCl Concentration_0.0      3012 non-null   float64
+ 22  Solvent NaCl Concentration_0.8      3012 non-null   float64
+ 23  Solvent NaCl Concentration_3.0      3012 non-null   float64
+dtypes: float64(24)
+memory usage: 564.9 KB
