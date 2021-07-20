@@ -287,24 +287,25 @@ class visualize_data(object):
             dataset_numerical_attributes.csv: a csv file containing numerical attributes from dataset
         """
         # output information like dimensions and datatypes of the dataset
-        f = open('Output_Files/dataset_info.txt', 'w+')
+        f = open('Output_Files/data_information/dataset_info.txt', 'w+')
         v.data.info(buf=f)
         f.close()
 
         # output numerical attributes of dataset
         # Note: The resulting CSV file is very messy
-        v.data.describe(exclude=[object]).to_csv("Output_Files/dataset_numerical_attributes.csv")
+        v.data.describe(exclude=[object]).to_csv("Output_Files/data_information/dataset_numerical_attributes.csv")
 
         # loop through the cleaned dataframe columns and create data-feature-specific histograms
+        # Creates a grid, with "n" rows x 5 columns
         fig_hist, axs_hist = plt.subplots(figsize=(20, 15), nrows=math.ceil(len(v.data.columns)/5), ncols=5)
-        axs_hist = axs_hist.ravel()
+        a = axs_hist.ravel()
 
         # to prevent empty subplots, turn off all axs, and then turn them on when plotting
-        for ax in axs_hist:
+        for ax in a:
             ax.set_axis_off()
 
         # loop through each axes object and plot respective histogram on each one
-        for i, ax in enumerate(axs_hist):
+        for i, ax in enumerate(a):
             # if there aren't enough graphs to fill the entire grid of subplots
             if i == len(v.data.columns):
                 break
@@ -313,18 +314,20 @@ class visualize_data(object):
             ax.set_xbound(lower=min(v.data[v.data.columns[i]]) - (.1 * v.data[v.data.columns[i]].mean()),
                           upper=max(v.data[v.data.columns[i]]) + (.1 * v.data[v.data.columns[i]].mean()))
             ax.set_xlabel(v.data.columns[i])
-            ax.set_ylabel('Protein Count')
             ax.grid(axis='both')
 
+        # Extra formatting for dataset feature histograms
+        plt.setp(axs_hist[:, 0], ylabel='Protein Count')
+        plt.suptitle("Protein Count vs Dataset Features")
         plt.tight_layout()
-        fig_hist.savefig('Output_Files/histogram_dataset.png')
+        fig_hist.savefig('Output_Files/data_information/histogram_dataset.png')
 
         # plot and save the target label (Bound Fraction)
         pd.DataFrame(v.target).hist(bins=50, figsize=(15, 15))
         plt.title('Protein Count v.s. Bound Fraction', fontsize='xx-large')
         plt.ylabel('Protein Count', fontsize='xx-large')
         plt.xlabel('Bound Fraction (Spectral Count)', fontsize='xx-large')
-        plt.savefig('Output_Files/bound_fraction.png')
+        plt.savefig('Output_Files/data_information/bound_fraction.png')
 
 
 def visualize_rfecv(grid_scores):
