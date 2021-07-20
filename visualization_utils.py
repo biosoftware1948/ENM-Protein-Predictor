@@ -292,11 +292,12 @@ class visualize_data(object):
         f.close()
 
         # output numerical attributes of dataset
-        # Note: The resulting CSV file is very messy
+        # Note: In Pycharm, the CSV file is very messy, but the Github formats the CSV file nicely, but if it's too
+        # large then only the raw file itself can be viewed
         v.data.describe(exclude=[object]).to_csv("Output_Files/data_information/dataset_numerical_attributes.csv")
 
         # loop through the cleaned dataframe columns and create data-feature-specific histograms
-        # Creates a grid, with "n" rows x 5 columns
+        # Creates a subplot grid, with "n" rows x 5 columns
         fig_hist, axs_hist = plt.subplots(figsize=(20, 15), nrows=math.ceil(len(v.data.columns)/5), ncols=5)
         a = axs_hist.ravel()
 
@@ -306,7 +307,7 @@ class visualize_data(object):
 
         # loop through each axes object and plot respective histogram on each one
         for i, ax in enumerate(a):
-            # if there aren't enough graphs to fill the entire grid of subplots
+            # if there aren't enough histograms to fill the entire grid of subplots
             if i == len(v.data.columns):
                 break
             ax.set_axis_on()
@@ -352,9 +353,6 @@ if __name__ == "__main__":
     bound_fraction_data = db.raw_data['Bound Fraction']
     db.clean_raw_data()
 
-    # Bug: for some reason the clean_raw_data() function doesn't drop the 'Accesion Number' column
-    db.clean_X_data = db.clean_X_data.drop('Accesion Number', 1)
-
-    v = visualize_data(db.clean_X_data, bound_fraction_data)
+    v = visualize_data(db.original, bound_fraction_data)
     v.describe_data()
 
