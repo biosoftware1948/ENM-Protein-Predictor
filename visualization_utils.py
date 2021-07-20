@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import math
+import sys
 from mpl_toolkits.mplot3d import Axes3D
 from string import ascii_letters
 
@@ -16,18 +17,15 @@ class visualize_data(object):
     """Offers an easy way to create visualizations for the input data
 
     Args:
-        :param data (pandas Dataframe): The X data from the database
-        :param enrichment (array of floats): The continous Y data from the
-        database
+        :param: data (pandas Dataframe): The X data from the database
+        :param: bound_fraction (pandas Series): Target data from the X data
     Attributes:
         :data (pandas Dataframe): The X data
-        :enrichemnt (array of floats): The continous Y data
-        :target (array of ints): The classified Y data
+        :target (array of doubles): The data from the column 'Bound Fraction', from the X data
     """
-    def __init__(self, data, enrichment):
+    def __init__(self, data, bound_fraction):
         self.data = data
-        self.enrichment = enrichment
-        self.target = data_utils.classify(enrichment, 0.5)
+        self.target = np.array(bound_fraction)
 
     def interactive_3d_plot(self, x_label, y_label, z_label):
         """Creates a cool interactive 3d plot the user can spin and to
@@ -150,7 +148,7 @@ class visualize_data(object):
 
         line = plt.figure()
         plt.plot(plot_data['x']['unbound'], plot_data['x']['unbound'], "o", color='r', alpha=0.5)
-        plt.plot(plot_data['y']['bound'].append(data[y][i]), plot_data['x']['bound'], "o", color='g', alpha=0.5)
+        plt.plot(plot_data['y']['bound'].append(self.data[y][i]), plot_data['x']['bound'], "o", color='g', alpha=0.5)
         plt.ylim([0, max(self.data[x])])
         plt.xlim([0, max(self.data[y])])
         plt.legend(('Bound', 'Unbound'), fontsize=18)
@@ -280,6 +278,54 @@ class visualize_data(object):
         plt.tight_layout()
         plt.show()
 
+    def describe_data(self):
+        """Quickly visualize and describe the inputted dataset
+
+        Args: None
+        Returns:
+            dataset_info.txt: a text file containing information about data types and structure of dataset
+            dataset_numerical_attributes.csv: a csv file containing numerical attributes from dataset
+        """
+        # output information like dimensions and datatypes of the dataset
+        f = open('Output_Files/dataset_info.txt', 'w+')
+        v.data.info(buf=f)
+        f.close()
+
+        # output numerical attributes of dataset
+        # Note: The resulting CSV file is very messy
+        v.data.describe(exclude=[object]).to_csv("Output_Files/dataset_numerical_attributes.csv")
+
+        # loop through the cleaned dataframe columns and create data-feature-specific histograms
+        fig_hist, axs_hist = plt.subplots(figsize=(20, 15), nrows=math.ceil(len(v.data.columns)/5), ncols=5)
+        axs_hist = axs_hist.ravel()
+
+        # to prevent empty subplots, turn off all axs, and then turn them on when plotting
+        for ax in axs_hist:
+            ax.set_axis_off()
+
+        # loop through each axes object and plot respective histogram on each one
+        for i, ax in enumerate(axs_hist):
+            # if there aren't enough graphs to fill the entire grid of subplots
+            if i == len(v.data.columns):
+                break
+            ax.set_axis_on()
+            ax.hist(v.data[v.data.columns[i]], bins=50)
+            ax.set_xbound(lower=min(v.data[v.data.columns[i]]) - (.1 * v.data[v.data.columns[i]].mean()),
+                          upper=max(v.data[v.data.columns[i]]) + (.1 * v.data[v.data.columns[i]].mean()))
+            ax.set_xlabel(v.data.columns[i])
+            ax.set_ylabel('Protein Count')
+            ax.grid(axis='both')
+
+        plt.tight_layout()
+        fig_hist.savefig('Output_Files/histogram_dataset.png')
+
+        # plot and save the target label (Bound Fraction)
+        pd.DataFrame(v.target).hist(bins=50, figsize=(15, 15))
+        plt.title('Protein Count v.s. Bound Fraction', fontsize='xx-large')
+        plt.ylabel('Protein Count', fontsize='xx-large')
+        plt.xlabel('Bound Fraction (Spectral Count)', fontsize='xx-large')
+        plt.savefig('Output_Files/bound_fraction.png')
+
 
 def visualize_rfecv(grid_scores):
     """Plots the accuracy obtained with every number of features used from RFECV
@@ -297,11 +343,15 @@ def visualize_rfecv(grid_scores):
 
 
 if __name__ == "__main__":
-    # This will need to be rewritten overall as a module since enrichment factors are no longer relevant
     db = data_utils.data_base()
     # db.raw_data = "Input_Files/database.csv"
     db.raw_data = "Reformatted_Files/_new_database.csv"
+    bound_fraction_data = db.raw_data['Bound Fraction']
     db.clean_raw_data()
-    v = visualize_data(db.clean_X_data, db.Y_enrichment)
-    v.correlation_plot()
-    v.continous_distribution_by_particle()
+
+    # Bug: for some reason the clean_raw_data() function doesn't drop the 'Accesion Number' column
+    db.clean_X_data = db.clean_X_data.drop('Accesion Number', 1)
+
+    v = visualize_data(db.clean_X_data, bound_fraction_data)
+    v.describe_data()
+
