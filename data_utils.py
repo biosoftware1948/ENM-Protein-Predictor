@@ -91,11 +91,11 @@ class data_base(object):
             :self._X_test (Pandas Dataframe): Holds the X test data
             :self._Y_train (Pandas Dataframe): Holds the Y training data
             :self._Y_test (Pandas Dataframe): Holds the T testing data
-            :self._test_accesion_numbers (list): holds the accesion_numbers
+            :self._test_accession_numbers (list): holds the accession_numbers
             in the test set
         """
     categorical_data = ['Enzyme Commission Number', 'Particle Size', 'Particle Charge', 'Solvent Cysteine Concentration', 'Solvent NaCl Concentration']
-    columns_to_drop = ['Protein Length', 'Sequence', 'Accesion Number', 'Bound Fraction']
+    columns_to_drop = ['Protein Length', 'Sequence', 'Accession Number', 'Bound Fraction']
 
     def __init__(self):
         self._raw_data = None
@@ -106,7 +106,8 @@ class data_base(object):
         self._Y_train = None
         self._X_test = None
         self._Y_test = None
-        self._test_accesion_numbers = None
+        self._test_accession_numbers = None
+        self._original = None
         # If you want to use our model set this to your csv file using the assignment operator
         self._predict = None
 
@@ -117,28 +118,32 @@ class data_base(object):
         Args, Returns: None
         """
         self.clean_X_data = self.raw_data
-
         # one hot encode categorical data
         for category in self.categorical_data:
             self.clean_X_data = one_hot_encode(self.clean_X_data, category)
 
-        # Grab some useful data before dropping from independent variables
+        # Fill in missing values in target label and 'Protein Abundance before dropping independent variables
         self.clean_X_data['Bound Fraction'].fillna(self.clean_X_data['Bound Fraction'].mean())
-        # new target: predict 'Bound Fraction' (Regression)
+
+        # target label: Bound Fraction
         self._target = self.clean_X_data['Bound Fraction'].to_numpy()
         # self._target = classify(self.Y_enrichment, self._ENRICHMENT_SPLIT_VALUE)  # enrichment or nsaf
         self.Y_train = self.target
 
-        # self.Y_enrichment = self.clean_X_data['Enrichment']
-        accesion_numbers = self.clean_X_data['Accesion Number']
+        accession_numbers = self.clean_X_data['Accession Number']
 
         # drop useless columns
         for column in self.columns_to_drop:
             self.clean_X_data = self.clean_X_data.drop(column, 1)
 
+        # TEST: fill with either the mean average or with zeroes
         self.clean_X_data = fill_nan(self.clean_X_data, 'Protein Abundance')
         # self.clean_X_data = fill_zero(self.clean_X_data, 'Protein Abundance')
-        self.clean_X_data = normalize_and_reshape(self.clean_X_data, accesion_numbers)
+
+        # This grabs the original cleaned data so that it can be visualized in visualization_utils.py
+        self._original = self.clean_X_data
+
+        self.clean_X_data = normalize_and_reshape(self.clean_X_data, accession_numbers)
         self.X_train = self.clean_X_data
 
     def clean_user_test_data(self, user_data):
@@ -151,31 +156,24 @@ class data_base(object):
         Returns:
             None
         """
-        # Categorize Interprot identifiers and hot encoding
-        # user_data = multi_label_encode(user_data, 'Interprot')
-
         # one hot encode categorical data
         for category in self.categorical_data:
             user_data = one_hot_encode(user_data, category)
 
         # Grab some useful data before dropping from independent variables
-        # self.Y_test = user_data['Enrichment']
         self.Y_test = user_data['Bound Fraction'].to_numpy()
-        accesion_numbers = user_data['Accesion Number']
+        accession_numbers = user_data['Accession Number']
 
         for column in self.columns_to_drop:
             user_data = user_data.drop(column, 1)
 
         user_data = fill_nan(user_data, 'Protein Abundance')
-        self.X_test = normalize_and_reshape(user_data, accesion_numbers)
-
-        # removing Enrichment values from regression
-        # self.Y_test = classify(self.Y_test, self._ENRICHMENT_SPLIT_VALUE) # enrichment or nsaf
+        self.X_test = normalize_and_reshape(user_data, accession_numbers)
 
         # Get accession number
-        self.test_accesion_numbers = self.X_test['Accesion Number']
-        self.X_train = self.X_train.drop('Accesion Number', 1)
-        self.X_test = self.X_test.drop('Accesion Number', 1)
+        self.test_accession_numbers = self.X_test['Accession Number']
+        self.X_train = self.X_train.drop('Accession Number', 1)
+        self.X_test = self.X_test.drop('Accession Number', 1)
 
     def stratified_data_split(self, test_size=0.0):
         """Randomized stratified shuffle split that sets training and testing data
@@ -191,16 +189,38 @@ class data_base(object):
         print("The types of the Y_test and Y_train sets: {} and {}\n".format(type(self.Y_test), type(self.Y_train)))
         print("Dimensions of the Y_train set: {}".format(self.Y_train.shape))
         print("Dimensions of the target set: {}".format(self.target.shape))
+        print("The types of the X_train set: {}\n".format(type(self.X_train)))
+        print("Dimensions of the X_train set: {}".format(self.X_train.shape))
+        print("Dimensions of the target set: {}".format(self.target.shape))
+
+        sys.exit(0)
+
         # print(list(self.Y_train))
         # print(list(self.clean_X_data))
         # pd.set_option("display.max_rows", None, "display.max_columns", None)
         # print(self.clean_X_data)
 
-        # self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data, self.target, test_size=test_size, stratify=self.target, random_state=int((random.random()*100)))
-        self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data, self.target, test_size=test_size, random_state=int((random.random()*100)))
-        self.test_accesion_numbers = self.X_test['Accesion Number']
-        self.X_train = self.X_train.drop('Accesion Number', 1)
-        self.X_test = self.X_test.drop('Accesion Number', 1)
+        # Bugs here:
+        # 1) Trying to use a stratified data split approach leads to a ValueError with not enough samples being in a
+        #    certain class
+        # 2) Figuring out random state and why it's configured the way it is
+        # self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data,
+        #                                                                                         self.target,
+        #                                                                                         test_size=test_size,
+        #                                                                                         stratify=self.target,
+        #                                                                                         random_state=int((random.random()*100)))
+        # self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data,
+        #                                                                                         self.target,
+        #                                                                                         test_size=test_size,
+        #                                                                                         stratify=self.target,
+        #                                                                                         random_state=42)
+        # self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data,
+        #                                                                                         self.target,
+        #                                                                                         test_size=test_size,
+        #                                                                                         random_state=int((random.random()*100)))
+        self.test_accession_numbers = self.X_test['Accession Number']
+        self.X_train = self.X_train.drop('Accession Number', 1)
+        self.X_test = self.X_test.drop('Accession Number', 1)
 
     @staticmethod
     def fetch_raw_data(enm_database):
@@ -262,11 +282,11 @@ class data_base(object):
             return self._clean_X_data
 
     @property
-    def Y_enrichment(self):
-        if self._Y_enrichment is None:
-            raise ValueError("Initialize Y_enrichment by calling clean_data()")
+    def original(self):
+        if self._original is None:
+            raise ValueError("Initialize original by calling clean_data()")
         else:
-            return self._Y_enrichment
+            return self._original
 
     @property
     def target(self):
@@ -276,11 +296,11 @@ class data_base(object):
             return self._target
 
     @property
-    def test_accesion_numbers(self):
-        if self._test_accesion_numbers is None:
-            raise ValueError("Initialize test_accesion_numbers by calling stratified_data_split()")
+    def test_accession_numbers(self):
+        if self._test_accession_numbers is None:
+            raise ValueError("Initialize test_accession_numbers by calling stratified_data_split()")
         else:
-            return self._test_accesion_numbers
+            return self._test_accession_numbers
 
     @property
     def predict(self):
@@ -338,23 +358,14 @@ class data_base(object):
             # If trying to set to already imported array
             self._clean_X_data = path
 
-    # @Y_enrichment.setter
-    # def Y_enrichment(self, path):
-    #     if isinstance(path, str) and os.path.isfile(path):
-            # If trying to set to value from excel
-    #        self._Y_enrichment = fetch_raw_data(path)
-    #    else:
-            # If trying to set to already imported array
-    #        self._Y_enrichment = path
-
-    @test_accesion_numbers.setter
-    def test_accesion_numbers(self, path):
+    @test_accession_numbers.setter
+    def test_accession_numbers(self, path):
         if isinstance(path, str) and os.path.isfile(path):
             # If trying to set to value from excel
-            self._Y_enrichment = fetch_raw_data(path)
+            # self._Y_enrichment = fetch_raw_data(path)
         else:
             # If trying to set to already imported array
-            self._test_accesion_numbers = path
+            self._test_accession_numbers = path
 
     @predict.setter
     def predict(self, path):
@@ -477,7 +488,7 @@ def to_excel(classification_information):
             >classification_information = {
                 'all_predict_proba' : np.empty([TOTAL_TESTED_PROTEINS], dtype=float),
                 'all_true_results' : np.empty([TOTAL_TESTED_PROTEINS], dtype=int),
-                'all_accesion_numbers' : np.empty([TOTAL_TESTED_PROTEINS], dtype=str),
+                'all_accession_numbers' : np.empty([TOTAL_TESTED_PROTEINS], dtype=str),
                 'all_particle_information' : np.empty([2, TOTAL_TESTED_PROTEINS], dtype=int),
                 'all_solvent_information' : np.empty([3, TOTAL_TESTED_PROTEINS], dtype=int)
                 }
@@ -485,11 +496,11 @@ def to_excel(classification_information):
             None
         """
     with open('prediction_probability.csv', 'w') as file:
-        file.write('Protein Accesion Number, Particle Type, Solvent Conditions, True Bound Value, Predicted Bound Value, Predicted Probability of Being Bound, Properly Classified\n')
+        file.write('Protein Accession Number, Particle Type, Solvent Conditions, True Bound Value, Predicted Bound Value, Predicted Probability of Being Bound, Properly Classified\n')
 
         for pred, true_val, protein, particle_s, particle_c, cys, salt8, salt3, in zip(classification_information['all_predict_proba'],
                                                                                        classification_information['all_true_results'],
-                                                                                       classification_information['all_accesion_numbers'],
+                                                                                       classification_information['all_accession_numbers'],
                                                                                        classification_information['all_particle_information'][0],
                                                                                        classification_information['all_particle_information'][1],
                                                                                        classification_information['all_solvent_information'][0],
@@ -550,7 +561,7 @@ def hold_in_memory(classification_information, metrics, iterations, test_size):
     # Information is placed into numpy arrays as blocks
     classification_information['all_predict_proba'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[0]
     classification_information['all_true_results'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[1]
-    classification_information['all_accesion_numbers'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[2]
+    classification_information['all_accession_numbers'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[2]
     classification_information['all_particle_information'][PARTICLE_CHARGE][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Particle Charge_1']
     classification_information['all_particle_information'][PARTICLE_SIZE][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Particle Size_10']
     classification_information['all_solvent_information'][SOLVENT_CYS][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Solvent Cysteine Concentration_0.1']
