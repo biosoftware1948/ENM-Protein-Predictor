@@ -8,7 +8,6 @@ Returns a saved copy of the newly reformatted CSV file, it does not alter the or
 
 import csv
 import pandas as pd
-import requests
 import os
 import sys
 
@@ -47,8 +46,33 @@ def add_columns_from_other_file(other_filename, columns, df):
     return reformatted_df
 
 
-def sort_by_accession_num(df):
-    """Sort values of a dataframe by the accession numbers"""
+def add_data_with_labels(df, input, labels):
+    """Insert data from one dataframe input to another based on the associated label with that data
+    Args:
+        :param: df (pandas DataFrame): the dataset which we want to insert new data into
+        :param: input (pandas Series or Dataframe): the data to be inputted
+        :param: labels (pandas Series): the labels by which we sort and then insert the data
+    """
+    # pseudo code
+    # for label in labels:
+    #     for feature in input.columns:
+    #          for i in range(len(input[feature]):
+    #               # input data based on the label
+    #               if KeyError:
+    #                   print("An Accession Number is incorrect")
+    if isinstance(input, pd.DataFrame):
+        columns = list(input.columns)
+    else:
+        columns = input.name
+
+    # access by each Accession Number
+    for label in labels:
+        # access by each data feature in the input's column(s)
+        for feature in columns:
+            # for each value within that data feature column
+            for i, val in enumerate(input[feature]):
+                print("nice")
+                # have to figure out how to filter by the Accession # and then the 
 
 
 if __name__ == '__main__':
@@ -74,14 +98,10 @@ if __name__ == '__main__':
     # dataset.to_csv(path_or_buf=output_file, header=list(dataset.columns.values), index=False)
     # print("Successfully reformatted CSV database file\n")
 
+    # This could be an automated function right where I pass in the name of the file
     gravy_scores = pd.read_csv('Reformatted_Files/GRAVY_Scores.csv')
-    print(gravy_scores.columns)
-    columns = ['header', 'sequence', 'Unnamed: 4', 'Unnamed: 5']
-    remove_columns(gravy_scores, columns)
-    pd.set_option("display.max_rows", None, "display.max_columns", None)
-    print("Columns of gravy_scores.csv: {}".format(gravy_scores.columns))
-    print("Shape of gravy scores csv: {}".format(gravy_scores.shape))
-    # sort_by_accession_num(gravy_scores)
+    add_data_with_labels(pd.read_csv('Reformatted_Files/_new_database.csv'), gravy_scores[['GRAVY', '% h-bonding']],
+                         gravy_scores['Accession Number'])
 
 
 
