@@ -8,6 +8,7 @@ Returns a saved copy of the newly reformatted CSV file, it does not alter the or
 
 import csv
 import pandas as pd
+import requests
 import os
 import sys
 
@@ -46,26 +47,43 @@ def add_columns_from_other_file(other_filename, columns, df):
     return reformatted_df
 
 
+def sort_by_accession_num(df):
+    """Sort values of a dataframe by the accession numbers"""
+
+
 if __name__ == '__main__':
-    assert len(sys.argv) == 2, "First command line argument is name of the new CSV database file,"
-    output_file = "Reformatted_Files/" + str(sys.argv[1])
+    # This bit of code reformats the dataset to delete and add columns, but this section of code is
+    # inflexible since every single command must be hardcoded (will require future revision for ease of use)
+    # assert len(sys.argv) == 2, "First command line argument is name of the new CSV database file,"
+    # output_file = "Reformatted_Files/" + str(sys.argv[1])
+    #
+    # # read the csv file into a Pandas dataframe
+    # filename = 'Reformatted_Files/reformatted_database.csv'
+    # dataset = pd.read_csv(filename)
+    #
+    # # remove desired columns, can put any number of columns into this list
+    # columns_to_delete = ['Bound Fraction', 'Interprot']
+    # dataset = remove_columns(dataset, columns_to_delete)
+    #
+    # # add desired columns of data from other files into the current dataset being reformatted
+    # # can input more columns as needed into the following list
+    # columns_to_add = ['Bound Fraction']
+    # dataset = add_columns_from_other_file('Reformatted_Files/reformatted_database.csv', columns_to_add, dataset)
+    #
+    # # save CSV file to Reformatted_Files directory with the output file name inputted
+    # dataset.to_csv(path_or_buf=output_file, header=list(dataset.columns.values), index=False)
+    # print("Successfully reformatted CSV database file\n")
 
-    # read the csv file into a Pandas dataframe
-    filename = 'Reformatted_Files/reformatted_database.csv'
-    dataset = pd.read_csv(filename)
+    gravy_scores = pd.read_csv('Reformatted_Files/GRAVY_Scores.csv')
+    print(gravy_scores.columns)
+    columns = ['header', 'sequence', 'Unnamed: 4', 'Unnamed: 5']
+    remove_columns(gravy_scores, columns)
+    pd.set_option("display.max_rows", None, "display.max_columns", None)
+    print("Columns of gravy_scores.csv: {}".format(gravy_scores.columns))
+    print("Shape of gravy scores csv: {}".format(gravy_scores.shape))
+    # sort_by_accession_num(gravy_scores)
 
-    # remove desired columns, can put any number of columns into this list
-    columns_to_delete = ['Bound Fraction', 'Interprot']
-    dataset = remove_columns(dataset, columns_to_delete)
 
-    # add desired columns of data from other files into the current dataset being reformatted
-    # can input more columns as needed into the following list
-    columns_to_add = ['Bound Fraction']
-    dataset = add_columns_from_other_file('Reformatted_Files/reformatted_database.csv', columns_to_add, dataset)
-
-    # save CSV file to Reformatted_Files directory with the output file name inputted
-    dataset.to_csv(path_or_buf=output_file, header=list(dataset.columns.values), index=False)
-    print("Successfully reformatted CSV database file\n")
 
 
 
