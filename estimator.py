@@ -65,6 +65,9 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=True):
         sys.exit(0)
 
     est.fit(db.X_train, db.Y_train)
+
+    # Notes:
+    # Because the RandomForestRegressor doesn't have a predict_proba feature, this section will have to be changed
     probability_prediction = est.predict_proba(db.X_test)[:,1]
 
     # validator.y_randomization_test(est, db)  # run y_randomization_test
