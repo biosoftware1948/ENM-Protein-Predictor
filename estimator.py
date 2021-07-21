@@ -57,7 +57,6 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=True):
     )
 
     if optimize:
-        print("optimize")
         predictor_utils.optimize(est, db.X_train, db.Y_train)
         sys.exit(0)
     if RFECV:
