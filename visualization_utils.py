@@ -349,7 +349,7 @@ def visualize_rfecv(grid_scores):
 if __name__ == "__main__":
     db = data_utils.data_base()
     # db.raw_data = "Input_Files/database.csv"
-    db.raw_data = "Reformatted_Files/_new_database.csv"
+    db.raw_data = "Reformatted_Files/_updated_database.csv"
     bound_fraction_data = db.raw_data['Bound Fraction']
     db.clean_raw_data()
 
