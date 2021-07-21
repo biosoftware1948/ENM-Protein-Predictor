@@ -8,7 +8,6 @@ import pandas as pd
 import numpy as np
 import sklearn
 from sklearn import preprocessing, model_selection
-# from sklearn.model_selection import cross_validate
 import random
 import csv
 import sys
@@ -175,49 +174,26 @@ class data_base(object):
         self.X_train = self.X_train.drop('Accession Number', 1)
         self.X_test = self.X_test.drop('Accession Number', 1)
 
-    def stratified_data_split(self, test_size=0.0):
-        """Randomized stratified shuffle split that sets training and testing data
-
-        Args:
-            :param test_size (float): The percentage of data to use for testing
-        Returns:
-            None
+    def stratified_data_split(self):
+        """Uses KFold Cross Validation to randomly split the data
+        Args, Returns: None
         """
-        assert 1.0 >= test_size >= 0.0, "test_size must be between 0 and 1"
         assert self.predict is None, "Remove stratified_data_split() if using your own data"
 
-        print("The types of the Y_test and Y_train sets: {} and {}\n".format(type(self.Y_test), type(self.Y_train)))
-        print("Dimensions of the Y_train set: {}".format(self.Y_train.shape))
-        print("Dimensions of the target set: {}".format(self.target.shape))
-        print("The types of the X_train set: {}\n".format(type(self.X_train)))
-        print("Dimensions of the X_train set: {}".format(self.X_train.shape))
-        print("Dimensions of the target set: {}".format(self.target.shape))
+        kf = model_selection.KFold(n_splits=5, random_state=int((random.random()*100)), shuffle=True)
+        for train_index, test_index in kf.split(self.clean_X_data):
+            self.X_train, self.X_test = self.clean_X_data.iloc[list(train_index)], self.clean_X_data.iloc[list(test_index)]
+            self.Y_train, self.Y_test = self.target[train_index], self.target[test_index]
+
+        print(self.X_train)
+        print("\n")
+        print(self.X_test)
+        print("\n")
+        print(self.Y_train)
+        print("\n")
+        print(self.Y_train)
 
         sys.exit(0)
-
-        # print(list(self.Y_train))
-        # print(list(self.clean_X_data))
-        # pd.set_option("display.max_rows", None, "display.max_columns", None)
-        # print(self.clean_X_data)
-
-        # Bugs here:
-        # 1) Trying to use a stratified data split approach leads to a ValueError with not enough samples being in a
-        #    certain class
-        # 2) Figuring out random state and why it's configured the way it is
-        # self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data,
-        #                                                                                         self.target,
-        #                                                                                         test_size=test_size,
-        #                                                                                         stratify=self.target,
-        #                                                                                         random_state=int((random.random()*100)))
-        # self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data,
-        #                                                                                         self.target,
-        #                                                                                         test_size=test_size,
-        #                                                                                         stratify=self.target,
-        #                                                                                         random_state=42)
-        # self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data,
-        #                                                                                         self.target,
-        #                                                                                         test_size=test_size,
-        #                                                                                         random_state=int((random.random()*100)))
         self.test_accession_numbers = self.X_test['Accession Number']
         self.X_train = self.X_train.drop('Accession Number', 1)
         self.X_test = self.X_test.drop('Accession Number', 1)
@@ -363,6 +339,7 @@ class data_base(object):
         if isinstance(path, str) and os.path.isfile(path):
             # If trying to set to value from excel
             # self._Y_enrichment = fetch_raw_data(path)
+            print("Enrichment factors don't exist anymore")
         else:
             # If trying to set to already imported array
             self._test_accession_numbers = path

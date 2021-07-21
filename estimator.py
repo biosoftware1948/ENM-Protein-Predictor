@@ -43,7 +43,7 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=True):
     #   deep enough and thus skew the majority vote in the end
     if db.predict is None:
         # We split our own data for training and testing if user isn't predicting their own data
-        db.stratified_data_split(test_percentage)
+        db.stratified_data_split()
 
     # apply the RFECV mask to only keep selected features from the RFECV algorithm
     # db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_new_mask.txt', db.X_train, db.X_test)
@@ -103,7 +103,7 @@ if __name__ == '__main__':
     # Initialize our database
     db = data_utils.data_base()
     # This is the newly reformatted database that is being tested right now
-    db.raw_data = "Reformatted_Files/_new_database.csv"
+    db.raw_data = "Reformatted_Files/_updated_database.csv"
     db.clean_raw_data()
 
     # To use our data to predict yours, set your data below and uncomment:
