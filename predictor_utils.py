@@ -13,19 +13,6 @@ import csv
 import visualization_utils
 
 
-class RandomForestRegressorWithCoef(RandomForestRegressor):
-    """Adds feature weights for each returned variable from the
-    sklearn RandomForestRegressor:
-    https://github.com/scikit-learn/scikit-learn/blob/main/sklearn/ensemble/_forest.py
-    """
-    def fit(self, *args, **kwargs):
-        """Overloaded fit method to include the feature importances
-        of each variable. This is used for RFECV
-        """
-        super(RandomForestRegressorWithCoef, self).fit(*args, **kwargs)
-        self.coef_ = self.feature_importances_
-
-
 def optimize(model, X_train, Y_train):
     """This function optimizes the machine learning classifier's hyperparameters,
     print the parameters that give the best accuracy based on a
@@ -73,7 +60,6 @@ def recursive_feature_elimination(model, X_train, Y_train, mask_file):
     dir_path = os.path.dirname(os.path.realpath(__file__))
     mask_file = os.path.join(dir_path, mask_file)
 
-    # selector = RFECV(estimator=model, step=1, cv=5, scoring='f1', verbose=1)
     selector = RFECV(estimator=model, step=1, cv=5, scoring='r2', verbose=1)
     selector = selector.fit(X_train, Y_train)
 
