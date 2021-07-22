@@ -21,9 +21,10 @@ import validation_utils
 import sys
 import json
 import os
+from sklearn import metrics
 
 
-def pipeline(db, test_percentage=0.1, optimize=False, RFECV=True):
+def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
     """
     Runs the pipeline. Trains and evaluates the estimator, outputs metrics and
     information about the model performance.
@@ -38,22 +39,22 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=True):
         :feature_importances (dict): contains a dictionary of feature importances
         :classification_information (dict): information about the predictions
     """
-    # Reasons for potentially not using stratified_data_split:
-    # - while the dataset might not be balanced enough, it is small enough that the trees might not be able to grow
-    #   deep enough and thus skew the majority vote in the end
     if db.predict is None:
         # We split our own data for training and testing if user isn't predicting their own data
         db.stratified_data_split()
 
     # apply the RFECV mask to only keep selected features from the RFECV algorithm
-    # db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_new_mask.txt', db.X_train, db.X_test)
+    db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_new_mask.txt', db.X_train, db.X_test)
 
-    est = predictor_utils.RandomForestRegressorWithCoef(
-        n_estimators=1000,
+    est = predictor_utils.RandomForestRegressor(
+        # n_estimators=1000,
+        n_estimators=2500,
         bootstrap=True,
-        min_samples_split=4,
+        # min_samples_split=4,
+        # min_samples_split=2,
+        min_samples_split=3,
         n_jobs=-1,
-        random_state=data_utils.random.randint(1, 2**8)
+        random_state=data_utils.random.randint(1, 2 ** 8)
     )
 
     if optimize:
@@ -64,10 +65,18 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=True):
         sys.exit(0)
 
     est.fit(db.X_train, db.Y_train)
+    y_pred = est.predict(db.X_test)
+
+    print('Mean Absolute Error:', metrics.mean_absolute_error(db.Y_test, y_pred))
+    print('Mean Squared Error:', metrics.mean_squared_error(db.Y_test, y_pred))
+    print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(db.Y_test, y_pred)))
+
+    # Inserting some code to obtain the prediction scores
+    sys.exit(0)
 
     # Notes:
     # Because the RandomForestRegressor doesn't have a predict_proba feature, this section will have to be changed
-    probability_prediction = est.predict_proba(db.X_test)[:,1]
+    # probability_prediction = est.predict_proba(db.X_test)[:,1]
 
     # validator.y_randomization_test(est, db)  # run y_randomization_test
     val = validation_utils.validation_metrics(db.Y_test, probability_prediction)
