@@ -141,7 +141,6 @@ class data_base(object):
 
         # This grabs the original cleaned data so that it can be visualized in visualization_utils.py
         self._original = self.clean_X_data
-
         self.clean_X_data = normalize_and_reshape(self.clean_X_data, accession_numbers)
         self.X_train = self.clean_X_data
 
@@ -175,25 +174,22 @@ class data_base(object):
         self.X_test = self.X_test.drop('Accession Number', 1)
 
     def stratified_data_split(self):
-        """Uses KFold Cross Validation to randomly split the data
+        """Uses KFold Cross Validation to randomly split the data into training and testing sets
         Args, Returns: None
         """
         assert self.predict is None, "Remove stratified_data_split() if using your own data"
 
-        kf = model_selection.KFold(n_splits=5, random_state=int((random.random()*100)), shuffle=True)
+        # Testing randomized shuffle versus non-randomized splitting for data training and testing sets
+        # kf = model_selection.KFold(n_splits=5, random_state=int((random.random()*100)), shuffle=True)
+        kf = model_selection.KFold(n_splits=5, random_state=42, shuffle=True)
+        # kf = model_selection.KFold(n_splits=5)
         for train_index, test_index in kf.split(self.clean_X_data):
             self.X_train, self.X_test = self.clean_X_data.iloc[list(train_index)], self.clean_X_data.iloc[list(test_index)]
             self.Y_train, self.Y_test = self.target[train_index], self.target[test_index]
 
-        print(self.X_train)
-        print("\n")
-        print(self.X_test)
-        print("\n")
-        print(self.Y_train)
-        print("\n")
-        print(self.Y_train)
+        print("Shape of the X_Train and X_Test sets: {} and {}".format(self.X_train.shape, self.X_test.shape))
+        print("Shape of the Y_Train and Y_Test sets: {} and {}".format(self.Y_train.shape, self.Y_test.shape))
 
-        sys.exit(0)
         self.test_accession_numbers = self.X_test['Accession Number']
         self.X_train = self.X_train.drop('Accession Number', 1)
         self.X_test = self.X_test.drop('Accession Number', 1)
