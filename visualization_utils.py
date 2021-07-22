@@ -340,7 +340,7 @@ def visualize_rfecv(grid_scores):
     plt.figure(figsize=(16, 9))
     plt.title('Recursive Feature Elimination with Cross-Validation', fontsize=18, fontweight='bold', pad=20)
     plt.xlabel('Number of features selected', fontsize=14, labelpad=20)
-    plt.ylabel('% Correct Classification', fontsize=14, labelpad=20)
+    plt.ylabel('% Correct Regression', fontsize=14, labelpad=20)
     plt.plot(range(1, len(grid_scores) + 1), grid_scores, color='#303F9F', linewidth=3)
     plt.savefig('Output_Files/rfecv_visualization.png')
     plt.show()
