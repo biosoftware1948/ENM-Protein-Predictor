@@ -67,9 +67,9 @@ class validation_metrics(object):
         Returns:
             :return: avg_errs (dict): a dictionary containing key-value pairs in the form {'type of error': error value}
         """
-        keys = ['average MSE', 'average RMSE', 'average MAE', 'average MAPE', 'average r2']
+        keys = ['average MSE', 'average RMSE', 'average MAE', 'average MAPE']
         avg_errs_vals = [statistics.mean(self._mse), statistics.mean(self._rmse), statistics.mean(self._mae),
-                         statistics.mean(self._mape), statistics.mean(self._r2)]
+                         statistics.mean(self._mape)]
         avg = dict(zip(keys, avg_errs_vals))
         print("This is the average of the errors: \n{}".format(avg))
         return dict(zip(keys, avg_errs_vals))
