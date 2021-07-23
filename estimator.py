@@ -24,7 +24,7 @@ import os
 from sklearn import metrics
 
 
-def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
+def pipeline(db, validation, test_percentage=0.1, optimize=False, RFECV=False):
     """
     Runs the pipeline. Trains and evaluates the estimator, outputs metrics and
     information about the model performance.
@@ -47,11 +47,8 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
     db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_new_mask.txt', db.X_train, db.X_test)
 
     est = predictor_utils.RandomForestRegressor(
-        # n_estimators=1000,
         n_estimators=2500,
         bootstrap=True,
-        # min_samples_split=4,
-        # min_samples_split=2,
         min_samples_split=3,
         n_jobs=-1,
         random_state=data_utils.random.randint(1, 2 ** 8)
@@ -65,28 +62,14 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
         sys.exit(0)
 
     est.fit(db.X_train, db.Y_train)
-    y_pred = est.predict(db.X_test)
 
-    print('Mean Absolute Error:', metrics.mean_absolute_error(db.Y_test, y_pred))
-    print('Mean Squared Error:', metrics.mean_squared_error(db.Y_test, y_pred))
-    print('Root Mean Squared Error:', np.sqrt(metrics.mean_squared_error(db.Y_test, y_pred)))
-
-    # Inserting some code to obtain the prediction scores
-    sys.exit(0)
-
-    # Notes:
-    # Because the RandomForestRegressor doesn't have a predict_proba feature, this section will have to be changed
-    # probability_prediction = est.predict_proba(db.X_test)[:,1]
+    validation.set_parameters(db.Y_test, est.predict(db.X_test))
+    validation.calculate_error_metrics()
 
     # validator.y_randomization_test(est, db)  # run y_randomization_test
-    val = validation_utils.validation_metrics(db.Y_test, probability_prediction)
-    classification_information = (probability_prediction, db.Y_test, db.test_accesion_numbers, db.X_test)
     feature_importances = dict(zip(list(db.X_train), est.feature_importances_))
 
-    # Remove comments to visualize roc curve and youden index
-    # val.youden_index()
-    # val.roc_curve()
-    return val.well_rounded_validation(), feature_importances, classification_information
+    return feature_importances
 
 
 class NpEncoder(json.JSONEncoder):
@@ -118,43 +101,15 @@ if __name__ == '__main__':
     # To use our data to predict yours, set your data below and uncomment:
     # db.predict = "your_csv_path" #<-----Set your own data here
 
-    # Set constants for array indexes
-    if db.Y_test is not None:
-        print("User has their own data")
-        # db.Y_test is set if user wants to predict their own data
-        test_size = db.Y_test.shape[0]  # If user has their own data
-    else:
-        print("We use our own data")
-        # If not we split our own database for training and testing
-        test_size = int(db.raw_data.shape[0] * .10)
-        # test_size = 302  # 10% of training data is used for testing 10% of 3012=302
-    TOTAL_TESTED_PROTEINS = test_size*iterations
-    SCORES = 0
-    IMPORTANCES = 1
-    INFORMATION = 2
-    results = {}
-
-    # Information about classified particle protein pairs
-    classification_information = {'all_predict_proba': np.empty([TOTAL_TESTED_PROTEINS], dtype=float),
-                                  'all_true_results': np.empty([TOTAL_TESTED_PROTEINS], dtype=int),
-                                  'all_accesion_numbers': np.empty([TOTAL_TESTED_PROTEINS], dtype="S10"),
-                                  'all_particle_information': np.empty([2, TOTAL_TESTED_PROTEINS], dtype=int),
-                                  'all_solvent_information': np.empty([3, TOTAL_TESTED_PROTEINS], dtype=int)
-                                  }
+    # error metric values will be set during the pipeline
+    val = validation_utils.validation_metrics()
 
     # Run the model multiple times and store results
     for i in range(0, iterations):
         print("Run Number: {}".format(i))
-        metrics = pipeline(db)
-        # hold scores and importance data in json format
-        results["Run_" + str(i)] = {'scores': metrics[SCORES], 'importances': metrics[IMPORTANCES]}
-        # hold classification information in arrays to output to excel file
-        data_utils.hold_in_memory(classification_information, metrics[INFORMATION], i, test_size)
+        metrics = pipeline(db, validation=val)
 
-    # dump the statistic and feature importance results as json
-    with open(output_file, 'w') as f:
-        json.dump(results, f, cls=NpEncoder)
-    # Pass prediction information to be inserted into excel document
-    data_utils.to_excel(classification_information)
-    # Run statistic parser for human readable json
-    os.system('python statistic_parser.py {}'.format(output_file))
+    # calculate the average of each error metric score
+    average_error_metrics = val.average_error_metrics()
+
+    # insert future code for outputting more information
