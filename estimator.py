@@ -24,7 +24,7 @@ import os
 from sklearn import metrics
 
 
-def pipeline(db, validation, test_percentage=0.1, optimize=False, RFECV=False):
+def pipeline(db, validation, optimize=False, RFECV=False):
     """
     Runs the pipeline. Trains and evaluates the estimator, outputs metrics and
     information about the model performance.
@@ -32,6 +32,8 @@ def pipeline(db, validation, test_percentage=0.1, optimize=False, RFECV=False):
     Args:
         :param: db (database obj): The database object, passed from main.
         Information about this class can be found in data_utils
+        :param: validation (validation_utils object: this object holds onto error metrics for the
+        RandomForestRegressor, and the final result will be the average of each error metric
         :param: optimize (bool): Set to true to run Grid search
         :param: RFECV (bool): Set to true to run RFECV
     Returns:
@@ -63,12 +65,10 @@ def pipeline(db, validation, test_percentage=0.1, optimize=False, RFECV=False):
 
     est.fit(db.X_train, db.Y_train)
 
+    # Calculate each individual error metric and hold onto it until the end to take the average of all error metrics
     validation.set_parameters(db.Y_test, est.predict(db.X_test))
     validation.calculate_error_metrics()
-
-    # validator.y_randomization_test(est, db)  # run y_randomization_test
     feature_importances = dict(zip(list(db.X_train), est.feature_importances_))
-
     return feature_importances
 
 
@@ -100,6 +100,13 @@ if __name__ == '__main__':
 
     # To use our data to predict yours, set your data below and uncomment:
     # db.predict = "your_csv_path" #<-----Set your own data here
+
+    if db.Y_test is not None:
+        # db.Y_test is set if user wants to predict their own data
+        test_size = db.Y_test.shape[0]  # If user has their own data
+    else:
+        # If not we split our own database for training and testing
+        test_size = 602  # ~20% of training data is used for testing ~20% of 3012=602
 
     # error metric values will be set during the pipeline
     val = validation_utils.validation_metrics()
