@@ -82,8 +82,9 @@ def add_data_by_accession_number(df, input_data):
                 pass
 
     # print information about any possible missing Accession Numbers from input_data
-    print("Number of missing Accession Numbers: \n{}\n".format(len(key_errors)))
-    print("List of missing Accession Numbers themselves: \n{}\n".format(key_errors))
+    if len(key_errors) > 0:
+        print("Number of missing Accession Numbers: \n{}\n".format(len(key_errors)))
+        print("List of missing Accession Numbers themselves: \n{}\n".format(key_errors))
 
     # reset the indexing of the dataset and return final DataFrame
     df.reset_index(inplace=True)
