@@ -90,6 +90,7 @@ class data_base(object):
             :self._Y_train (Pandas Dataframe): Holds the Y training data
             :self._Y_test (Pandas Dataframe): Holds the T testing data
             :self._test_accession_numbers (list): holds the accession_numbers
+            :self._original (Pandas Dataframe): holds the original cleaned data before it's normalized
             in the test set
         """
     categorical_data = ['Enzyme Commission Number', 'Particle Size', 'Particle Charge', 'Solvent Cysteine Concentration', 'Solvent NaCl Concentration']
@@ -98,7 +99,6 @@ class data_base(object):
     def __init__(self):
         self._raw_data = None
         self._clean_X_data = None
-        # self._Y_enrichment = None
         self._target = None
         self._X_train = None
         self._Y_train = None
@@ -132,9 +132,8 @@ class data_base(object):
         for column in self.columns_to_drop:
             self.clean_X_data = self.clean_X_data.drop(column, 1)
 
-        # TEST: fill with either the mean average or with zeroes
+        # fill in missing protein abundance values with the mean value
         self.clean_X_data = fill_nan(self.clean_X_data, 'Protein Abundance')
-        # self.clean_X_data = fill_zero(self.clean_X_data, 'Protein Abundance')
 
         # This grabs the original cleaned data so that it can be visualized in visualization_utils.py
         self._original = self.clean_X_data
@@ -176,10 +175,7 @@ class data_base(object):
         """
         assert self.predict is None, "Remove stratified_data_split() if using your own data"
 
-        # Testing randomized shuffle versus non-randomized splitting for data training and testing sets
-        # kf = model_selection.KFold(n_splits=5, random_state=int((random.random()*100)), shuffle=True)
-        kf = model_selection.KFold(n_splits=5, random_state=42, shuffle=True)
-        # kf = model_selection.KFold(n_splits=5)
+        kf = model_selection.KFold(n_splits=5, random_state=int((random.random()*100)), shuffle=True)
         for train_index, test_index in kf.split(self.clean_X_data):
             self.X_train, self.X_test = self.clean_X_data.iloc[list(train_index)], self.clean_X_data.iloc[list(test_index)]
             self.Y_train, self.Y_test = self.target[train_index], self.target[test_index]
@@ -379,23 +375,6 @@ def fill_nan(data, column):
             count += 1
             total += val
     data[column] = data[column].fillna(total/count)
-    return data
-
-
-def fill_zero(data, column):
-    """Fills nan values with 0's in the specified column
-
-    Args:
-        :param: data (pandas Dataframe): Dataframe containing column with nan values
-        :param: column (String): specifying column to fill_nans
-    Returns:
-        :data (pandas Dataframe): Containing the column with filled nan values
-    """
-    assert isinstance(data, pd.DataFrame), 'data argument needs to be pandas dataframe'
-    assert isinstance(column, str), 'Column must be a string'
-    data[column] = data[column].fillna(0)
-    print("Printing values from specified column to check, should contain 0's in place of NaNs.\n")
-    print(list(data[column].values))
     return data
 
 
