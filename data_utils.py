@@ -10,7 +10,6 @@ import sklearn
 from sklearn import preprocessing, model_selection
 import random
 import csv
-import sys
 
 
 def apply_RFECV_mask(mask, *args):
@@ -124,11 +123,9 @@ class data_base(object):
         # Fill in missing values in target label and 'Protein Abundance before dropping independent variables
         self.clean_X_data['Bound Fraction'].fillna(self.clean_X_data['Bound Fraction'].mean())
 
-        # target label: Bound Fraction
+        # grab target label and accession numbers
         self._target = self.clean_X_data['Bound Fraction'].to_numpy()
-        # self._target = classify(self.Y_enrichment, self._ENRICHMENT_SPLIT_VALUE)  # enrichment or nsaf
         self.Y_train = self.target
-
         accession_numbers = self.clean_X_data['Accession Number']
 
         # drop useless columns
@@ -174,7 +171,7 @@ class data_base(object):
         self.X_test = self.X_test.drop('Accession Number', 1)
 
     def stratified_data_split(self):
-        """Uses KFold Cross Validation to randomly split the data into training and testing sets
+        """Uses KFold Cross Validation with 5 folds to randomly split our data into training and testing sets
         Args, Returns: None
         """
         assert self.predict is None, "Remove stratified_data_split() if using your own data"
@@ -186,9 +183,6 @@ class data_base(object):
         for train_index, test_index in kf.split(self.clean_X_data):
             self.X_train, self.X_test = self.clean_X_data.iloc[list(train_index)], self.clean_X_data.iloc[list(test_index)]
             self.Y_train, self.Y_test = self.target[train_index], self.target[test_index]
-
-        print("Shape of the X_Train and X_Test sets: {} and {}".format(self.X_train.shape, self.X_test.shape))
-        print("Shape of the Y_Train and Y_Test sets: {} and {}".format(self.Y_train.shape, self.Y_test.shape))
 
         self.test_accession_numbers = self.X_test['Accession Number']
         self.X_train = self.X_train.drop('Accession Number', 1)
