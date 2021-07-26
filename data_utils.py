@@ -428,6 +428,7 @@ def clean_print(obj):
 
 def save_metrics(error_metrics, feature_importances):
     """Prints error metrics and feature_importances, and saves this information into a text file
+
     Args:
         :param: error_metrics (dict): contains averaged error metrics for model performance
         :param: feature_importances (dict): contains Gini importance scores for optimized features
@@ -441,6 +442,25 @@ def save_metrics(error_metrics, feature_importances):
         for feat in feature_importances.keys():
             print("Average Gini importance for {}: {}\n".format(feat, feature_importances[feat]))
             f.write("Average Gini importance for {}: {}\n".format(feat, feature_importances[feat]))
+
+
+def dict_to_excel(output):
+    """Takes the dictionary as an input, creates a dataframe to format/edit the data, and then outputs
+     model output and statistics to an excel file
+
+     Args:
+        :param: output (dict): Contains statistics comparing the averaged prediction values versus the ground truth
+     Returns: None
+     """
+    # create Dataframe from nested dictionary
+    output_file = pd.DataFrame.from_dict({(i, j): output[i][j] for i in output.keys() for j in output[i].keys()}, orient='index')
+    print(output_file)
+
+    # sort by accession number/index and input values into last feature to display
+    output_file['% Difference'] = np.nan
+
+    # print output into an excel file
+    output_file.to_csv(path_or_buf='model_output.csv')
 
 
 def to_excel(classification_information):

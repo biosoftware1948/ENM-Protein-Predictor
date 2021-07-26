@@ -24,7 +24,7 @@ import os
 from sklearn import metrics
 
 
-def pipeline(db, validation, optimize=False, RFECV=False):
+def pipeline(db, validation, optimize=True, RFECV=False):
     """
     Runs the pipeline. Trains and evaluates the estimator, outputs metrics and
     information about the model performance.
@@ -44,11 +44,12 @@ def pipeline(db, validation, optimize=False, RFECV=False):
         db.stratified_data_split()
 
     # apply the RFECV mask to only keep selected features from the RFECV algorithm
-    db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_new_mask.txt', db.X_train, db.X_test)
+    # db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_new_mask.txt', db.X_train, db.X_test)
 
     est = predictor_utils.RandomForestRegressor(
         n_estimators=2500,
         bootstrap=True,
+        min_samples_leaf=1,
         min_samples_split=3,
         n_jobs=-1,
         random_state=data_utils.random.randint(1, 2 ** 8)
@@ -84,10 +85,9 @@ class NpEncoder(json.JSONEncoder):
 
 
 if __name__ == '__main__':
-    assert len(sys.argv) == 3, "First command line argument is the amount of times to run the model, " \
-                               "second command line argument is output file for json results"
+    assert len(sys.argv) == 2, "First command line argument is the amount of times to run the model"
+
     iterations = int(sys.argv[1])
-    output_file = sys.argv[2]
 
     # Initialize our database
     db = data_utils.data_base()
@@ -114,10 +114,10 @@ if __name__ == '__main__':
         pipeline(db, validation=val)
 
     # calculate the average error metric scores + average predicted value
-    average_error_metrics, average_predicted_values, average_feature_importances = val.calculate_final_metrics()
+    average_error_metrics, predicted_values_stats, average_feature_importances = val.calculate_final_metrics()
 
     # insert future code for outputting more information
     # save error metrics + feature importances
     data_utils.save_metrics(average_error_metrics, average_feature_importances)
-
+    data_utils.dict_to_excel(predicted_values_stats)
     # save the
