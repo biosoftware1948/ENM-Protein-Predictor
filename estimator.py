@@ -37,9 +37,7 @@ def pipeline(db, validation, optimize=False, RFECV=False):
         :param: optimize (bool): Set to true to run Grid search
         :param: RFECV (bool): Set to true to run RFECV
     Returns:
-        :val.well_rounded_validation() (dict): returns a dictionary of validation metrics
         :feature_importances (dict): contains a dictionary of feature importances
-        :classification_information (dict): information about the predictions
     """
     if db.predict is None:
         # We split our own data for training and testing if user isn't predicting their own data
@@ -67,9 +65,8 @@ def pipeline(db, validation, optimize=False, RFECV=False):
 
     # Calculate each individual error metric and hold onto it until the end to take the average of all error metrics
     validation.set_parameters(db.Y_test, est.predict(db.X_test))
-    validation.calculate_error_metrics()
-    feature_importances = dict(zip(list(db.X_train), est.feature_importances_))
-    return feature_importances
+    validation.calculate_error_metrics(), validation.update_predictions_by_accession_number(db.test_accession_numbers)
+    validation.update_feature_importances(list(db.X_train.columns), est.feature_importances_)
 
 
 class NpEncoder(json.JSONEncoder):
@@ -114,9 +111,13 @@ if __name__ == '__main__':
     # Run the model multiple times and store results
     for i in range(0, iterations):
         print("Run Number: {}".format(i))
-        metrics = pipeline(db, validation=val)
+        pipeline(db, validation=val)
 
-    # calculate the average of each error metric score
-    average_error_metrics = val.average_error_metrics()
+    # calculate the average error metric scores + average predicted value
+    average_error_metrics, average_predicted_values, average_feature_importances = val.calculate_final_metrics()
 
     # insert future code for outputting more information
+    # save error metrics + feature importances
+    data_utils.save_metrics(average_error_metrics, average_feature_importances)
+
+    # save the

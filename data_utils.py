@@ -426,6 +426,23 @@ def clean_print(obj):
             print(str(obj) + "\n")
 
 
+def save_metrics(error_metrics, feature_importances):
+    """Prints error metrics and feature_importances, and saves this information into a text file
+    Args:
+        :param: error_metrics (dict): contains averaged error metrics for model performance
+        :param: feature_importances (dict): contains Gini importance scores for optimized features
+    Returns: None
+    """
+    with open('Output_Files/model_evaluation_info.txt', 'w') as f:
+        for key in error_metrics.keys():
+            print("{}: {}\n".format(key, error_metrics[key]))
+            f.write("{}: {}\n".format(key, error_metrics[key]))
+
+        for feat in feature_importances.keys():
+            print("Average Gini importance for {}: {}\n".format(feat, feature_importances[feat]))
+            f.write("Average Gini importance for {}: {}\n".format(feat, feature_importances[feat]))
+
+
 def to_excel(classification_information):
     """ Prints model output to an excel file
 
