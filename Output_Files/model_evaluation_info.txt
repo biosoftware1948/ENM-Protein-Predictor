@@ -1,0 +1,7 @@
+average MSE: 6.436124462531026e-06
+average RMSE: 0.0024890148569552102
+average MAE: 0.0010098509751568377
+average MAPE: 2.189964259112613
+Gini importance for pI: 0.28884948767291985
+Gini importance for Protein Weight: 0.4218982536509536
+Gini importance for Protein Abundance: 0.28925225867612653
