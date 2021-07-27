@@ -6,10 +6,10 @@ and cleaning. It also contains functions that help us work with our data.
 import os
 import pandas as pd
 import numpy as np
-import sklearn
 from sklearn import preprocessing, model_selection
 import random
 import csv
+import sys
 
 
 def apply_RFECV_mask(mask, *args):
@@ -31,8 +31,6 @@ def apply_RFECV_mask(mask, *args):
     with open(mask, 'r') as f:
         reader = csv.reader(f)
         column_mask = list(reader)[0]
-    # print("Length of column mask:" + str(len(column_mask)))
-    # print("This is the column mask as a list: \n" + str(column_mask) + "\n")
     # apply mask to columns
     column_indexes = []
     for dataframe in args:
@@ -434,13 +432,18 @@ def save_metrics(error_metrics, feature_importances):
         :param: feature_importances (dict): contains Gini importance scores for optimized features
     Returns: None
     """
+    # sort dictionary by highest ranked features
+    feature_importances = dict(sorted(feature_importances.items(), key=lambda item: item[1], reverse=True))
+
     with open('Output_Files/model_evaluation_info.txt', 'w') as f:
+        print("\n")
         for key in error_metrics.keys():
-            print("{}: {}\n".format(key, error_metrics[key]))
+            print("{}: {}".format(key, error_metrics[key]))
             f.write("{}: {}\n".format(key, error_metrics[key]))
 
+        print("\n")
         for feat in feature_importances.keys():
-            print("Average Gini importance for {}: {}\n".format(feat, feature_importances[feat]))
+            print("Average Gini importance for {}: {}".format(feat, feature_importances[feat]))
             f.write("Average Gini importance for {}: {}\n".format(feat, feature_importances[feat]))
 
 
@@ -452,15 +455,18 @@ def dict_to_excel(output):
         :param: output (dict): Contains statistics comparing the averaged prediction values versus the ground truth
      Returns: None
      """
+    pd.set_option("display.max_rows", None, "display.max_columns", None)
     # create Dataframe from nested dictionary
-    output_file = pd.DataFrame.from_dict({(i, j): output[i][j] for i in output.keys() for j in output[i].keys()}, orient='index')
-    print(output_file)
+    output_file = pd.DataFrame.from_dict({(i): output[i] for i in output.keys()}, orient='index')
 
     # sort by accession number/index and input values into last feature to display
+    # output_file[]
     output_file['% Difference'] = np.nan
+    print(output_file)
+    sys.exit(0)
 
     # print output into an excel file
-    output_file.to_csv(path_or_buf='model_output.csv')
+    # output_file.to_csv(path_or_buf='model_output.csv')
 
 
 def to_excel(classification_information):
