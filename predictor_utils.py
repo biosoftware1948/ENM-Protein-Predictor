@@ -4,12 +4,8 @@ This module contains the overloaded RandomForestRegressor and methods to help
 us with feature engineering and model optimization.
 """
 import os
-from sklearn.ensemble import RandomForestRegressor
 from sklearn.feature_selection import RFECV
 from sklearn.model_selection import GridSearchCV
-import sklearn
-import numpy as np
-import csv
 import visualization_utils
 
 
@@ -62,7 +58,7 @@ def recursive_feature_elimination(model, X_train, Y_train, mask_file):
     selector = RFECV(estimator=model, step=1, cv=5, scoring='neg_mean_squared_error', verbose=1)
     selector = selector.fit(X_train, Y_train)
 
-    # uncomment this line to view the RFECV accuracy scores
+    # view RFECV accuracy scores
     visualization_utils.visualize_rfecv(selector.grid_scores_)
 
     # display optimal features
