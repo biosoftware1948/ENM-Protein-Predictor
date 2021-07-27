@@ -15,16 +15,14 @@ We validate our classifications with several statistical methods including ROC c
 """
 import data_utils
 import numpy as np
-import visualization_utils
 import predictor_utils
+from sklearn.ensemble import RandomForestRegressor
 import validation_utils
 import sys
 import json
-import os
-from sklearn import metrics
 
 
-def pipeline(db, validation, optimize=True, RFECV=False):
+def pipeline(db, validation, optimize=False, RFECV=False):
     """
     Runs the pipeline. Trains and evaluates the estimator, outputs metrics and
     information about the model performance.
@@ -44,9 +42,9 @@ def pipeline(db, validation, optimize=True, RFECV=False):
         db.stratified_data_split()
 
     # apply the RFECV mask to only keep selected features from the RFECV algorithm
-    # db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_new_mask.txt', db.X_train, db.X_test)
+    db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_new_mask.txt', db.X_train, db.X_test)
 
-    est = predictor_utils.RandomForestRegressor(
+    est = RandomForestRegressor(
         n_estimators=2500,
         bootstrap=True,
         min_samples_leaf=1,
@@ -65,8 +63,9 @@ def pipeline(db, validation, optimize=True, RFECV=False):
     est.fit(db.X_train, db.Y_train)
 
     # Calculate each individual error metric and hold onto it until the end to take the average of all error metrics
-    validation.set_parameters(db.Y_test, est.predict(db.X_test))
-    validation.calculate_error_metrics(), validation.update_predictions_by_accession_number(db.test_accession_numbers)
+    # Note that this eats up memory in return for convenience of outputting/formatting model information
+    validation.set_parameters(db.Y_test, est.predict(db.X_test), db.test_accession_numbers)
+    validation.calculate_error_metrics(), validation.update_predictions(db.test_accession_numbers)
     validation.update_feature_importances(list(db.X_train.columns), est.feature_importances_)
 
 
@@ -91,8 +90,7 @@ if __name__ == '__main__':
 
     # Initialize our database
     db = data_utils.data_base()
-    # This is the newly reformatted database that is being tested right now
-    db.raw_data = "Reformatted_Files/_updated_database.csv"
+    db.raw_data = "Input_Files/_updated_database.csv"
     db.clean_raw_data()
 
     # To use our data to predict yours, set your data below and uncomment:
@@ -116,8 +114,6 @@ if __name__ == '__main__':
     # calculate the average error metric scores + average predicted value
     average_error_metrics, predicted_values_stats, average_feature_importances = val.calculate_final_metrics()
 
-    # insert future code for outputting more information
     # save error metrics + feature importances
     data_utils.save_metrics(average_error_metrics, average_feature_importances)
     data_utils.dict_to_excel(predicted_values_stats)
-    # save the
