@@ -278,7 +278,8 @@ class visualize_data(object):
         plt.tight_layout()
         plt.show()
 
-    def describe_data(self):
+    @staticmethod
+    def describe_data():
         """Quickly visualize and describe the inputted dataset
 
         Args: None
@@ -292,11 +293,8 @@ class visualize_data(object):
         f.close()
 
         # output numerical attributes of dataset
-        # Note: In Pycharm, the CSV file is very messy, but the Github formats the CSV file nicely, but if it's too
-        # large then only the raw file itself can be viewed
         v.data.describe(exclude=[object]).to_csv("Output_Files/data_information/dataset_numerical_attributes.csv")
 
-        # loop through the cleaned dataframe columns and create data-feature-specific histograms
         # Creates a subplot grid, with "n" rows x 5 columns
         fig_hist, axs_hist = plt.subplots(figsize=(20, 15), nrows=math.ceil(len(v.data.columns)/5), ncols=5)
         a = axs_hist.ravel()
@@ -314,20 +312,22 @@ class visualize_data(object):
             ax.hist(v.data[v.data.columns[i]], bins=50)
             ax.set_xbound(lower=min(v.data[v.data.columns[i]]) - (.1 * v.data[v.data.columns[i]].mean()),
                           upper=max(v.data[v.data.columns[i]]) + (.1 * v.data[v.data.columns[i]].mean()))
-            ax.set_xlabel(v.data.columns[i])
+            ax.set_xlabel(v.data.columns[i], fontsize=14)
+            # allows for controlling font size on a set of y-axes
+            if i % 5 == 0:
+                ax.set_ylabel('Protein Count', fontsize=14)
             ax.grid(axis='both')
 
         # Extra formatting for dataset feature histograms
-        plt.setp(axs_hist[:, 0], ylabel='Protein Count')
-        plt.suptitle("Protein Count vs Dataset Features")
+        plt.suptitle("Protein Count vs Dataset Features", fontsize=18)
         plt.tight_layout()
         fig_hist.savefig('Output_Files/data_information/histogram_dataset.png')
 
         # plot and save the target label (Bound Fraction)
         pd.DataFrame(v.target).hist(bins=50, figsize=(15, 15))
-        plt.title('Protein Count v.s. Bound Fraction', fontsize='xx-large')
-        plt.ylabel('Protein Count', fontsize='xx-large')
-        plt.xlabel('Bound Fraction (Spectral Count)', fontsize='xx-large')
+        plt.title('Protein Count v.s. Bound Fraction', fontsize=25)
+        plt.ylabel('Protein Count', fontsize=25)
+        plt.xlabel('Bound Fraction (Spectral Count)', fontsize=25)
         plt.savefig('Output_Files/data_information/bound_fraction.png')
 
 
@@ -338,9 +338,9 @@ def visualize_rfecv(grid_scores):
     Returns: a saved matplotlib graph of the rfecv_visualization
     """
     plt.figure(figsize=(16, 9))
-    plt.title('Recursive Feature Elimination with Cross-Validation', fontsize=18, fontweight='bold', pad=20)
-    plt.xlabel('Number of features selected', fontsize=14, labelpad=20)
-    plt.ylabel('% Correct Regression', fontsize=14, labelpad=20)
+    plt.title('Recursive Feature Elimination with Cross-Validation', fontsize=25, fontweight='bold', pad=20)
+    plt.xlabel('Number of features selected', fontsize=25, labelpad=20)
+    plt.ylabel('Neg-MSE (Negative Mean Squared Error) Scoring', fontsize=25, labelpad=20)
     plt.plot(range(1, len(grid_scores) + 1), grid_scores, color='#303F9F', linewidth=3)
     plt.savefig('Output_Files/rfecv_visualization.png')
     plt.show()
@@ -348,11 +348,11 @@ def visualize_rfecv(grid_scores):
 
 if __name__ == "__main__":
     db = data_utils.data_base()
-    # db.raw_data = "Input_Files/database.csv"
-    db.raw_data = "Reformatted_Files/_updated_database.csv"
+    db.raw_data = "Input_Files/_updated_database.csv"
     bound_fraction_data = db.raw_data['Bound Fraction']
     db.clean_raw_data()
 
+    # Call these functions to describe our dataset
     v = visualize_data(db.original, bound_fraction_data)
     v.describe_data()
 
