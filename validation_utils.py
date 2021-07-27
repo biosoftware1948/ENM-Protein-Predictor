@@ -3,17 +3,11 @@ Modified by: Joseph Pham 2021
 
 This module calculates and stores error metrics and other useful statistics for measuring model performance
 """
-import statistics
 
-import data_utils
-import numpy as np
-import pandas as pd
-import math
-import visualization_utils
-import sklearn
 from sklearn import metrics
-import sys
 import statistics as stat
+import sys
+import pandas as pd
 
 
 class validation_metrics(object):
@@ -44,14 +38,17 @@ class validation_metrics(object):
         self._mae = []
         self._mape = []
 
-    def set_parameters(self, true_results, predicted_results):
+    def set_parameters(self, true_results, predicted_results, accession_numbers):
         """During the pipeline, set temporary true_results and predicted results to calculate error metrics and
         other desired information
         Args:
             :param: true_results (): array containing the true targets to compare prediction values against
             :param: predicted_results (ndarray of floats): contains predicted targets for prediction on X_test
         """
-        self._true_results = true_results
+        # append the accession numbers as an index to the true_results for further updates
+        self._true_results = pd.DataFrame(true_results, columns=['True Value'], index=accession_numbers)
+        print(self._true_results)
+        sys.exit(0)
         self._predicted_results = predicted_results.tolist()
 
     def update_feature_importances(self, optimal_features, scores):
@@ -64,9 +61,8 @@ class validation_metrics(object):
         for idx, feat in enumerate(optimal_features):
             self._feature_importances.setdefault(feat, []).append(scores[idx])
 
-    def update_predictions_by_accession_number(self, accession_numbers):
-        """Append new predicted values by Accession Number + classified particle protein pairs. Each time it does so,
-        calculate the new average predicted all the way until the number of iterations on the model is done
+    def update_predictions(self, accession_numbers):
+        """Update predicted values by accession number
         Args:
             :param: accession_numbers (pandas Series): Series containing the tested particle protein pairs' Accession Numbers
             :param: y_pred (array of floats): nparray containing the predicted regression targets for X_test
@@ -74,14 +70,15 @@ class validation_metrics(object):
         """
         # append new predicted values to each specific accession number key
         for idx, a_num in enumerate(accession_numbers):
-            # self._sorted_predicted_results.setdefault(a_num, []).append(self._predicted_results[idx])
             self._sorted_predicted_results.setdefault(a_num, {'Min': None, 'Max': None, 'Standard Deviation': None,
-                                                              'Average Predicted Value': []})
+                                                              'True Value': [], 'Average Predicted Value': []})
+            # input single ground truth value
+            # if self._sorted_predicted_results[a_num]['True Value'] is not None:
+            #    self._sorted_predicted_results[a_num]['True Value'] =
             self._sorted_predicted_results[a_num]['Average Predicted Value'].append(self._predicted_results[idx])
 
     def calculate_error_metrics(self):
-        """Calculate various error metric values using several regression metrics like MSE, RMSE, Huber Loss,
-        and store them into error-metric-specific lists
+        """Calculate various error metric values like MSE and RMSE, and store them into error-metric-specific lists
         Args, Returns: None
         """
         # as the model goes through the pipeline, store each individual error score in each respective list
