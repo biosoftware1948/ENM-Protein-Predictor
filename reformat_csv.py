@@ -47,6 +47,25 @@ def add_columns_from_other_file(other_filename, columns, df):
     return reformatted_df
 
 
+def replace_columns_from_other_file(other_filename, columns, df):
+    """Replaces a column(s) of data from one csv file into another csv file
+    Args:
+        :param: other_filename (string): string containing the filepath of the other csv file
+        :param: columns (array): list containing 1 or more column names
+        :param: df (pandas dataframe): dataframe of the dataset being reformatted
+    Returns: dataset with the additional column(s) of data appended from the other csv file
+    """
+    # read in csv file as a pd df
+    other_file = pd.read_csv(other_filename)
+
+    # iterate through columns and append those to dataset
+    for col in columns:
+        column = other_file[col]
+        df.replace(df[col], column, inplace=True)
+
+    return df
+
+
 def add_data_by_accession_number(df, input_data):
     """Insert data from one dataframe input to another based on the associated label with that data
     It inserts data by Accession Number, and both the df and the input should have their respective associated
@@ -116,42 +135,24 @@ def save_to_csv(df, pathway):
 
 
 if __name__ == '__main__':
-    # note for future self:
-    # might want to type in code to receive input on which commands and what you want to edit
-    # this will probably take some time to code up
-
-    # This bit of code reformats the dataset to delete and add columns, but this section of code is
-    # inflexible since every single command must be hardcoded (will require future revision for ease of use)
-    # assert len(sys.argv) == 2, "First command line argument is name of the new CSV database file,"
-    # output_file = "Reformatted_Files/" + str(sys.argv[1])
-    #
-    # # read the csv file into a Pandas dataframe
-    # filename = 'Reformatted_Files/reformatted_database.csv'
-    # dataset = pd.read_csv(filename)
-    #
-    # # remove desired columns, can put any number of columns into this list
-    # columns_to_delete = ['Bound Fraction', 'Interprot']
-    # dataset = remove_columns(dataset, columns_to_delete)
-    #
-    # # add desired columns of data from other files into the current dataset being reformatted
-    # # can input more columns as needed into the following list
-    # columns_to_add = ['Bound Fraction']
-    # dataset = add_columns_from_other_file('Reformatted_Files/reformatted_database.csv', columns_to_add, dataset)
-    #
-    # # save CSV file to Reformatted_Files directory with the output file name inputted
-    # dataset.to_csv(path_or_buf=output_file, header=list(dataset.columns.values), index=False)
-    # print("Successfully reformatted CSV database file\n")
-
     pd.set_option('display.max_rows', None, 'display.max_columns', None)
 
-    # read in the CSV file with the new features and remove the '%' from h-bonding column
-    new_features = pd.read_csv('Reformatted_Files/New_Features.csv')
-    new_features = remove_strings(new_features, '% H-bond/polar AA', '%')
+    # # read in the CSV file with the new features and remove the '%' from h-bonding column
+    # new_features = pd.read_csv('Reformatted_Files/New_Features.csv')
+    # new_features = remove_strings(new_features, '% H-bond/polar AA', '%')
+    #
+    # # adds data according to accession numbers (GRAVY scores + % h-bonding)
+    # original_dataset = pd.read_csv('Reformatted_Files/_new_database.csv')
+    # new_df = add_data_by_accession_number(original_dataset, new_features)
+    # new_df.to_csv('Reformatted_Files/_updated_database.csv')
 
-    # adds data according to accession numbers (GRAVY scores + % h-bonding)
-    original_dataset = pd.read_csv('Reformatted_Files/_new_database.csv')
-    new_df = add_data_by_accession_number(original_dataset, new_features)
-    new_df.to_csv('Reformatted_Files/_updated_database.csv')
+    current_dataset = pd.read_csv('Input_Files/__updated__database.csv')
+    current_dataset = replace_columns_from_other_file('Input_Files/database.csv', ['Protein Abundance'], current_dataset)
+    older_dataset = pd.read_csv('Input_Files/_updated_database.csv')
+    # save_to_csv(current_dataset, '__updated__database.csv')
+    # print(current_dataset.columns)
+    # print(older_dataset.columns)
+    current_dataset.compare(older_dataset)
 
 
 
