@@ -31,6 +31,7 @@ class validation_metrics(object):
     def __init__(self):
         self._true_results = None
         self._predicted_results = None
+        self._filters = None
         self._sorted_predicted_results = {}
         self._feature_importances = {}
         self._mse = []
@@ -38,18 +39,27 @@ class validation_metrics(object):
         self._mae = []
         self._mape = []
 
-    def set_parameters(self, true_results, predicted_results, accession_numbers):
+    def set_parameters(self, true_results, predicted_results, accession_numbers, conditions):
         """During the pipeline, set temporary true_results and predicted results to calculate error metrics and
         other desired information
         Args:
-            :param: true_results (): array containing the true targets to compare prediction values against
+            :param: true_results (ndarray of floats): array containing the true targets to compare prediction values against
             :param: predicted_results (ndarray of floats): contains predicted targets for prediction on X_test
+            :param: accession_numbers (pandas Series): contains Accession Numbers to use for filtering predicted values
+            :param: conditions (pandas DataFrame): contains protein particle conditions that will be used to further
+            filter the predicted values
+        Returns: None
         """
-        # append the accession numbers as an index to the true_results for further updates
         self._true_results = pd.DataFrame(true_results, columns=['True Value'], index=accession_numbers)
-        print(self._true_results)
-        sys.exit(0)
         self._predicted_results = predicted_results.tolist()
+
+        # set the categories for filtering predicted values
+        self._filters = conditions
+        self._filters.insert(0, 'Accession Numbers', accession_numbers)
+        self._filters.insert(len(self._filters.columns), 'Predicted Values', predicted_results)
+        self._filters.reset_index(inplace=True)
+        self._filters.drop(labels='index', axis=1, inplace=True)
+        print(self._filters['Particle Charge_0'])
 
     def update_feature_importances(self, optimal_features, scores):
         """Update the feature_importance scores and store into a dictionary
@@ -61,21 +71,35 @@ class validation_metrics(object):
         for idx, feat in enumerate(optimal_features):
             self._feature_importances.setdefault(feat, []).append(scores[idx])
 
-    def update_predictions(self, accession_numbers):
+    def update_predictions(self):
         """Update predicted values by accession number
         Args:
             :param: accession_numbers (pandas Series): Series containing the tested particle protein pairs' Accession Numbers
             :param: y_pred (array of floats): nparray containing the predicted regression targets for X_test
         Returns: None
         """
-        # append new predicted values to each specific accession number key
-        for idx, a_num in enumerate(accession_numbers):
-            self._sorted_predicted_results.setdefault(a_num, {'Min': None, 'Max': None, 'Standard Deviation': None,
-                                                              'True Value': [], 'Average Predicted Value': []})
-            # input single ground truth value
-            # if self._sorted_predicted_results[a_num]['True Value'] is not None:
-            #    self._sorted_predicted_results[a_num]['True Value'] =
-            self._sorted_predicted_results[a_num]['Average Predicted Value'].append(self._predicted_results[idx])
+        accession_number = ''
+        particle_size = '10 nm'
+        particle_charge = 'Negative'
+        solvent = ''
+        solvent_conditions = ['Solvent Cysteine Concentration_0.0', 'Solvent Cysteine Concentration_0.1',
+                              'Solvent NaCl Concentration_0.0', 'Solvent NaCl Concentration_0.8',
+                              'Solvent NaCl Concentration_3.0']
+
+        # Note: have to check conditions because they reproduce SettingWithCopyWarning
+        for idx in self._filters.index:
+            accession_number = self._filters.at[idx, 'Accession Numbers']
+            if self._filters.at[idx, 'Particle Size_10'] == 0.0:
+                particle_size = '100 nm'
+            if self._filters.at[idx, 'Particle Charge_0'] == 0.0:
+                particle_charge = 'Positive'
+            for sol in solvent_conditions:
+                if self._filters.at[idx, sol] == 1.0:
+                    solvent = sol
+
+            self._sorted_predicted_results.setdefault(accession_number, {}).setdefault(particle_size, {}).\
+                setdefault(particle_charge, {}).setdefault(solvent, {}).setdefault('Average Predicted Value', []).\
+                append(self._filters.at[idx, 'Predicted Values'])
 
     def calculate_error_metrics(self):
         """Calculate various error metric values like MSE and RMSE, and store them into error-metric-specific lists
@@ -100,20 +124,12 @@ class validation_metrics(object):
         avg_errs_vals = [stat.mean(self._mse), stat.mean(self._rmse), stat.mean(self._mae),
                          stat.mean(self._mape)]
 
-        # calculate average of predicted values for each accession number-protein pair
-        for a_num in self._sorted_predicted_results.keys():
-            self._sorted_predicted_results[a_num]['Min'] = min(self._sorted_predicted_results[a_num]
-                                                               ['Average Predicted Value'])
-            self._sorted_predicted_results[a_num]['Max'] = max(self._sorted_predicted_results[a_num]
-                                                               ['Average Predicted Value'])
-            try:
-                self._sorted_predicted_results[a_num]['Standard Deviation'] = stat.stdev(self._sorted_predicted_results
-                                                                                     [a_num]['Average Predicted Value'])
-            except stat.StatisticsError:
-                self._sorted_predicted_results[a_num]['Standard Deviation'] = 0.0
+        # Need to grab the dictionary keys in order to reach the right 'Average Predicted Value' array
+        # After grabbing the array, I need to then access that path again
+        # for a_num in self._sorted_predicted_results.keys():
+        #    print(a_num)
 
-            self._sorted_predicted_results[a_num]['Average Predicted Value'] = stat.mean(self._sorted_predicted_results
-                                                                                         [a_num]['Average Predicted Value'])
+        # sys.exit(0)
 
         # calculate average of feature importances
         for feat in self._feature_importances.keys():

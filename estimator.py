@@ -62,10 +62,16 @@ def pipeline(db, validation, optimize=False, RFECV=False):
 
     est.fit(db.X_train, db.Y_train)
 
+    # will be used to filter predicted values by protein particle properties
+    conditions = db.X_test[['Particle Size_10', 'Particle Size_100',
+                            'Particle Charge_0', 'Particle Charge_1', 'Solvent Cysteine Concentration_0.0',
+                            'Solvent Cysteine Concentration_0.1', 'Solvent NaCl Concentration_0.0',
+                            'Solvent NaCl Concentration_0.8', 'Solvent NaCl Concentration_3.0']]
+
     # Calculate each individual error metric and hold onto it until the end to take the average of all error metrics
     # Note that this eats up memory in return for convenience of outputting/formatting model information
-    validation.set_parameters(db.Y_test, est.predict(db.X_test), db.test_accession_numbers)
-    validation.calculate_error_metrics(), validation.update_predictions(db.test_accession_numbers)
+    validation.set_parameters(db.Y_test, est.predict(db.X_test), db.test_accession_numbers, conditions)
+    validation.calculate_error_metrics(), validation.update_predictions()
     validation.update_feature_importances(list(db.X_train.columns), est.feature_importances_)
 
 
