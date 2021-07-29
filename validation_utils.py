@@ -32,7 +32,8 @@ class validation_metrics(object):
         self._true_results = None
         self._predicted_results = None
         self._filters = None
-        self._sorted_predicted_results = {}
+        self._sorted_predicted_results = pd.DataFrame(columns=['Accession Number', 'Particle Size', 'Particle Charge',
+                                                               'Solvent Conditions', 'Average Predicted Value'])
         self._feature_importances = {}
         self._mse = []
         self._rmse = []
@@ -40,7 +41,7 @@ class validation_metrics(object):
         self._mape = []
 
     def set_parameters(self, true_results, predicted_results, accession_numbers, conditions):
-        """During the pipeline, set temporary true_results and predicted results to calculate error metrics and
+        """During the pipeline, set temporary objects 'true_results' and 'predicted results' to calculate error metrics and
         other desired information
         Args:
             :param: true_results (ndarray of floats): array containing the true targets to compare prediction values against
@@ -54,12 +55,87 @@ class validation_metrics(object):
         self._predicted_results = predicted_results.tolist()
 
         # set the categories for filtering predicted values
-        self._filters = conditions
+        self._filters = conditions.copy(deep=True)
         self._filters.insert(0, 'Accession Numbers', accession_numbers)
-        self._filters.insert(len(self._filters.columns), 'Predicted Values', predicted_results)
+        self._filters.insert(len(self._filters.columns), 'Predicted Value', predicted_results)
         self._filters.reset_index(inplace=True)
         self._filters.drop(labels='index', axis=1, inplace=True)
-        print(self._filters['Particle Charge_0'])
+
+    def update_predictions(self):
+        """Update predicted values by accession number
+        Args:
+            :param: accession_numbers (pandas Series): Series containing the tested particle protein pairs' Accession Numbers
+            :param: y_pred (array of floats): nparray containing the predicted regression targets for X_test
+        Returns: None
+        """
+        # obtain specific conditions for each protein-particle pair
+        solvent_conditions = ['Solvent Cysteine Concentration_0.1', 'Solvent NaCl Concentration_0.8',
+                              'Solvent NaCl Concentration_3.0']
+
+        # initial code broke when trying to use self._sorted_predicted_results, will come back and test
+        # this is a quick workaround for the initial start
+        if self._sorted_predicted_results.empty:
+            intermediate_df = pd.DataFrame()
+
+        new_values = []
+        for idx in self._filters.index:
+            accession_number = self._filters.at[idx, 'Accession Numbers']
+            predicted_value = self._filters.at[idx, 'Predicted Value']
+            if self._filters.at[idx, 'Particle Size_10'] == 1.0:
+                particle_size = '10 nm'
+            else:
+                particle_size = '100 nm'
+            if self._filters.at[idx, 'Particle Charge_0'] == 1.0:
+                particle_charge = 'Negative'
+            else:
+                particle_charge = 'Positive'
+
+            solvent = '10 mM NaPi pH 7.4'
+            for sol in solvent_conditions:
+                if self._filters.at[idx, sol] == 1.0:
+                    if sol == 'Solvent Cysteine Concentration_0.1':
+                        solvent += ' + 0.1 mM cys'
+                    elif sol == 'Solvent NaCl Concentration_0.8':
+                        solvent += ' + 0.8 mM NaCl'
+                    else:
+                        solvent += ' + 3.0 mM NaCl'
+
+            # Filter conditions the final dataframe, and see if the specific protein-particle pair's conditions exist
+            if(self._sorted_predicted_results['Accession Number'] == accession_number).any() and \
+                    (self._sorted_predicted_results['Particle Size'] == particle_size).any() and \
+                    (self._sorted_predicted_results['Particle Charge'] == particle_charge).any() and \
+                    (self._sorted_predicted_results['Solvent Conditions'] == solvent).any():
+
+                a_num_filter = self._sorted_predicted_results.index[self._sorted_predicted_results['Accession Number']
+                                                                    == accession_number].tolist()
+                p_size_filter = self._sorted_predicted_results.index[self._sorted_predicted_results['Particle Size']
+                                                                     == particle_size].tolist()
+                p_charge_filter = self._sorted_predicted_results.index[self._sorted_predicted_results['Particle Charge']
+                                                                       == particle_charge].tolist()
+                solvent_filter = self._sorted_predicted_results.index[self._sorted_predicted_results
+                                                                      ['Solvent Conditions'] == solvent].tolist()
+                row_index = list(set.intersection(*map(set, [a_num_filter, p_size_filter, p_charge_filter,
+                                                             solvent_filter])))
+
+                # identification bug in the conditions, will have to do more testing
+                if not row_index:
+                    new_values.append([accession_number, particle_size, particle_charge, solvent, [predicted_value]])
+                # otherwise use the identified row index to append more predicted values
+                else:
+                    self._sorted_predicted_results.at[row_index[0], 'Average Predicted Value'].append(predicted_value)
+            else:
+                # store sorted prediction results and concatenate them to the final sorted results after
+                new_values.append([accession_number, particle_size, particle_charge, solvent, [predicted_value]])
+
+        # append new protein-particle pairs and their conditions + values to the final sorted predictions
+        new_df = pd.DataFrame(data=new_values, columns=['Accession Number', 'Particle Size', 'Particle Charge',
+                                                        'Solvent Conditions', 'Average Predicted Value'])
+
+        # because of initial bugs, had to use an intermediate df to concatenate, but will come back to test
+        if self._sorted_predicted_results.empty:
+            self._sorted_predicted_results = pd.concat([intermediate_df, new_df])
+        else:
+            self._sorted_predicted_results = pd.concat([self._sorted_predicted_results, new_df], ignore_index=True)
 
     def update_feature_importances(self, optimal_features, scores):
         """Update the feature_importance scores and store into a dictionary
@@ -70,36 +146,6 @@ class validation_metrics(object):
         """
         for idx, feat in enumerate(optimal_features):
             self._feature_importances.setdefault(feat, []).append(scores[idx])
-
-    def update_predictions(self):
-        """Update predicted values by accession number
-        Args:
-            :param: accession_numbers (pandas Series): Series containing the tested particle protein pairs' Accession Numbers
-            :param: y_pred (array of floats): nparray containing the predicted regression targets for X_test
-        Returns: None
-        """
-        accession_number = ''
-        particle_size = '10 nm'
-        particle_charge = 'Negative'
-        solvent = ''
-        solvent_conditions = ['Solvent Cysteine Concentration_0.0', 'Solvent Cysteine Concentration_0.1',
-                              'Solvent NaCl Concentration_0.0', 'Solvent NaCl Concentration_0.8',
-                              'Solvent NaCl Concentration_3.0']
-
-        # Note: have to check conditions because they reproduce SettingWithCopyWarning
-        for idx in self._filters.index:
-            accession_number = self._filters.at[idx, 'Accession Numbers']
-            if self._filters.at[idx, 'Particle Size_10'] == 0.0:
-                particle_size = '100 nm'
-            if self._filters.at[idx, 'Particle Charge_0'] == 0.0:
-                particle_charge = 'Positive'
-            for sol in solvent_conditions:
-                if self._filters.at[idx, sol] == 1.0:
-                    solvent = sol
-
-            self._sorted_predicted_results.setdefault(accession_number, {}).setdefault(particle_size, {}).\
-                setdefault(particle_charge, {}).setdefault(solvent, {}).setdefault('Average Predicted Value', []).\
-                append(self._filters.at[idx, 'Predicted Values'])
 
     def calculate_error_metrics(self):
         """Calculate various error metric values like MSE and RMSE, and store them into error-metric-specific lists
@@ -119,17 +165,17 @@ class validation_metrics(object):
             :return: sorted_predicted_results: dictionary containing the average of each accession number-predicted pair
             :return: feature_importances: dictionary containing the average of the Gini importances for each optimal feature
         """
+        pd.set_option('display.max_columns', None, 'display.max_rows', None)
+        print("Have properly sorted the predicted values based on their specific protein-particle conditions")
+        print(self._sorted_predicted_results)
+        sys.exit(0)
         # calculate the average of all error metrics
         keys = ['average MSE', 'average RMSE', 'average MAE', 'average MAPE']
         avg_errs_vals = [stat.mean(self._mse), stat.mean(self._rmse), stat.mean(self._mae),
                          stat.mean(self._mape)]
 
-        # Need to grab the dictionary keys in order to reach the right 'Average Predicted Value' array
-        # After grabbing the array, I need to then access that path again
-        # for a_num in self._sorted_predicted_results.keys():
-        #    print(a_num)
-
-        # sys.exit(0)
+        # calculate min, max, standard deviation, and mean average predicted values
+        # Deprecated previous code due to failure to properly sort through conditions
 
         # calculate average of feature importances
         for feat in self._feature_importances.keys():
@@ -137,4 +183,9 @@ class validation_metrics(object):
 
         return dict(zip(keys, avg_errs_vals)), self._sorted_predicted_results, self._feature_importances
 
-
+    @property
+    def sorted_predicted_results(self):
+        if self._sorted_predicted_results is None:
+            raise ValueError("Initialize _sorted_predicted_results with the pipeline")
+        else:
+            return self._sorted_predicted_results
