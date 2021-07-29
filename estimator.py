@@ -64,8 +64,7 @@ def pipeline(db, validation, optimize=False, RFECV=False):
 
     # will be used to filter predicted values by protein particle properties
     conditions = db.X_test[['Particle Size_10', 'Particle Size_100',
-                            'Particle Charge_0', 'Particle Charge_1', 'Solvent Cysteine Concentration_0.0',
-                            'Solvent Cysteine Concentration_0.1', 'Solvent NaCl Concentration_0.0',
+                            'Particle Charge_0', 'Particle Charge_1', 'Solvent Cysteine Concentration_0.1',
                             'Solvent NaCl Concentration_0.8', 'Solvent NaCl Concentration_3.0']]
 
     # Calculate each individual error metric and hold onto it until the end to take the average of all error metrics
