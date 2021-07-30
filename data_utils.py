@@ -1,4 +1,5 @@
 """Developed by: Matthew Findlay 2017
+Modified by: Joseph Pham Nguyen 2021
 
 This Module contains the database class that handles all of the data gathering
 and cleaning. It also contains functions that help us work with our data.
@@ -9,19 +10,16 @@ import numpy as np
 from sklearn import preprocessing, model_selection
 import random
 import csv
-import sys
 
 
 def apply_RFECV_mask(mask, *args):
-    """Applies a binary mask to a dataframe to remove columns. Binary mask is
-    created from recursive feature elimination and cross validation and
-    optimizes the generalization of the model
-
+    """Applies a binary mask to a dataframe to remove columns. Binary mask is created from recursive feature elimination
+     and cross validation and optimizes the generalization of the model
     Args:
-        :param mask (string): text file containing the binary mask
-        :param *args (pandas dataframe): Dataframes containing columns to mask
+        :param: mask (string): text file containing the binary mask
+        :param: *args (pandas dataframe): Dataframes containing columns to mask
     Returns:
-        :new dataframes (pandas df): new dataframes with columns removed
+        :updated_args (pandas df): new dataframes with columns removed
     """
     assert os.path.isfile(mask), "please pass a string specifying mask location"
     dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -68,11 +66,10 @@ class data_base(object):
     """Handles all data fetching and preparation. Attributes
        can be assigned to csv files with the assignment operator. Typical use
        case is to set raw_data to a csv file matching the format found in
-       Input files and then calling clean_raw_data(). This sets the clean_X_data,
-       y_enrichment and target values. From this point you can split the data
-       to train/test the model using our data. To predict your own data, make sure your excel sheet
-       matches the format in <Input_Files/database.csv>. Then you can
-       call db.predict = <your_csv_path>. The X_test and Y_test data will now
+       Input files and then calling clean_raw_data(). This sets the clean_X_data and target values.
+       From this point you can split the data to train/test the model using our data.
+       To predict your own data, make sure your excel sheet matches the format in <Input_Files/database.csv>.
+       Then you can call db.predict = <your_csv_path>. The X_test and Y_test data will now
        be your data. Just remove the stratified_data_split from the pipeline
        because you will now not need to split any data.
 
@@ -82,14 +79,13 @@ class data_base(object):
             :self._raw_data (Pandas Dataframe): Holds raw data in the same form as excel file. initialized after fetch_raw_data() is called
             :self._clean_X_data (Pandas Dataframe): Holds cleaned and prepared X data.
             :self._target (np.array): holds target values for predictions
-            :self._Y_enrichment (numpy array): Holds continous Y values # REMOVED/COMMENTED
             :self._X_train (Pandas Dataframe): Holds the X training data
             :self._X_test (Pandas Dataframe): Holds the X test data
             :self._Y_train (Pandas Dataframe): Holds the Y training data
-            :self._Y_test (Pandas Dataframe): Holds the T testing data
+            :self._Y_test (Pandas Dataframe): Holds the Y testing data
             :self._test_accession_numbers (list): holds the accession_numbers
-            :self._original (Pandas Dataframe): holds the original cleaned data before it's normalized
-            in the test set
+            :self._original (Pandas Dataframe): holds the original cleaned data before it's normalized so it can be used
+            for data visualizations
         """
     categorical_data = ['Enzyme Commission Number', 'Particle Size', 'Particle Charge', 'Solvent Cysteine Concentration', 'Solvent NaCl Concentration']
     columns_to_drop = ['Protein Length', 'Sequence', 'Accession Number', 'Bound Fraction']
@@ -108,9 +104,7 @@ class data_base(object):
         self._predict = None
 
     def clean_raw_data(self):
-        """ Cleans the raw data, drops useless columns, one hot encodes, and extracts
-        class information
-
+        """ Cleans the raw data, drops useless columns, one hot encodes, and extracts class information
         Args, Returns: None
         """
         self.clean_X_data = self.raw_data
@@ -139,10 +133,8 @@ class data_base(object):
         self.X_train = self.clean_X_data
 
     def clean_user_test_data(self, user_data):
-        """This method makes it easy for other people to make predictions
-        on their data.
-        called by assignment operator when users set db.predict = <path_to_csv>
-
+        """This method makes it easy for other people to make predictions on their data.
+        Called by assignment operator when users set db.predict = <path_to_csv>
         Args:
             :param user_data: users data they wish to predict
         Returns:
@@ -338,8 +330,7 @@ class data_base(object):
 
 
 def normalize_and_reshape(data, labels):
-    """Normalize and reshape the data by columns while preserving labels
-    information
+    """Normalize and reshape the data by columns while preserving labels information
 
     Args:
         :param data (pandas df): The data to normalize
@@ -356,7 +347,6 @@ def normalize_and_reshape(data, labels):
 
 def fill_nan(data, column):
     """ Fills nan values with mean in specified column.
-
     Args:
         :param: data (pandas Dataframe): Dataframe containing column with nan values
         :param: column (String): specifying column to fill_nans
@@ -378,7 +368,6 @@ def fill_nan(data, column):
 
 def one_hot_encode(dataframe, category):
     """This function converts categorical variables into one hot vectors
-
     Args:
         :param dataframe (pandas Dataframe): Dataframe containing column to be encoded
         :param category (String): specifying the column to encode
@@ -394,13 +383,9 @@ def one_hot_encode(dataframe, category):
 
 
 def clean_print(obj):
-    """
-    Prints the JSON in a clean format for all my
-    Biochemistry friends
-
+    """Prints the JSON in a clean format for all my biochemistry friends
     Args:
         :param obj (object): Any object you wish to print in readable format
-
     Returns:
         None
     """
@@ -424,9 +409,9 @@ def clean_print(obj):
             print(str(obj) + "\n")
 
 
-def save_metrics(error_metrics, feature_importances):
-    """Prints error metrics and feature_importances, and saves this information into a text file
-
+def save_metrics(error_metrics, feature_importances, predicted_value_stats):
+    """Prints error metrics and feature importances, and saves this information into a text file.
+    Saves the model statistics into a CSV file.
     Args:
         :param: error_metrics (dict): contains averaged error metrics for model performance
         :param: feature_importances (dict): contains Gini importance scores for optimized features
@@ -436,126 +421,19 @@ def save_metrics(error_metrics, feature_importances):
     feature_importances = dict(sorted(feature_importances.items(), key=lambda item: item[1], reverse=True))
 
     with open('Output_Files/model_evaluation_info.txt', 'w') as f:
-        print("\n")
+        print("\n############ Average Error Metric Scores ############\n")
+        f.write("\n############ Average Error Metric Scores ############\n")
         for key in error_metrics.keys():
             print("{}: {}".format(key, error_metrics[key]))
             f.write("{}: {}\n".format(key, error_metrics[key]))
 
-        print("\n")
+        print("\n############ Average Feature Importance Scores ############\n")
+        f.write("\n############ Average Feature Importance Scores ############\n")
         for feat in feature_importances.keys():
             print("Average Gini importance for {}: {}".format(feat, feature_importances[feat]))
             f.write("Average Gini importance for {}: {}\n".format(feat, feature_importances[feat]))
 
-
-def dict_to_excel(output):
-    """Takes the dictionary as an input, creates a dataframe to format/edit the data, and then outputs
-     model output and statistics to an excel file
-
-     Args:
-        :param: output (dict): Contains statistics comparing the averaged prediction values versus the ground truth
-     Returns: None
-     """
-    pd.set_option("display.max_rows", None, "display.max_columns", None)
-    # create Dataframe from nested dictionary
-    output_file = pd.DataFrame.from_dict({(i): output[i] for i in output.keys()}, orient='index')
-
-    # sort by accession number/index and input values into last feature to display
-    # output_file[]
-    output_file['% Difference'] = np.nan
-    print(output_file)
-    sys.exit(0)
-
-    # print output into an excel file
-    # output_file.to_csv(path_or_buf='model_output.csv')
-
-
-def to_excel(classification_information):
-    """ Prints model output to an excel file
-
-        Args:
-            :classification_information (numpy array): Information about results
-            >classification_information = {
-                'all_predict_proba' : np.empty([TOTAL_TESTED_PROTEINS], dtype=float),
-                'all_true_results' : np.empty([TOTAL_TESTED_PROTEINS], dtype=int),
-                'all_accession_numbers' : np.empty([TOTAL_TESTED_PROTEINS], dtype=str),
-                'all_particle_information' : np.empty([2, TOTAL_TESTED_PROTEINS], dtype=int),
-                'all_solvent_information' : np.empty([3, TOTAL_TESTED_PROTEINS], dtype=int)
-                }
-        Returns:
-            None
-        """
-    with open('prediction_probability.csv', 'w') as file:
-        file.write('Protein Accession Number, Particle Type, Solvent Conditions, True Bound Value, Predicted Bound Value, Predicted Probability of Being Bound, Properly Classified\n')
-
-        for pred, true_val, protein, particle_s, particle_c, cys, salt8, salt3, in zip(classification_information['all_predict_proba'],
-                                                                                       classification_information['all_true_results'],
-                                                                                       classification_information['all_accession_numbers'],
-                                                                                       classification_information['all_particle_information'][0],
-                                                                                       classification_information['all_particle_information'][1],
-                                                                                       classification_information['all_solvent_information'][0],
-                                                                                       classification_information['all_solvent_information'][1],
-                                                                                       classification_information['all_solvent_information'][2]
-                                                                                       ):
-            bound = 'no'
-            predicted_bound = 'no'
-            properly_classified = 'no'
-            particle_charge = 'negative'
-            particle_size = '10nm'
-            solvent = '10 mM NaPi pH 7.4'
-
-            if int(round(pred)) == true_val:
-                properly_classified = 'yes'
-            if true_val == 1:
-                bound = 'yes'
-            if int(round(pred)) == 1:
-                predicted_bound = 'yes'
-            if particle_s == 0:
-                particle_size = '100nm'
-            if particle_c == 1:
-                particle_charge = 'positive'
-            if particle_size == '10nm' and particle_charge == 'positive':
-                particle = '(+) 10 nm AgNP'
-            if particle_size == '10nm' and particle_charge == 'negative':
-                particle = '(-) 10 nm AgNP'
-            if particle_size == '100nm' and particle_charge == 'negative':
-                particle = '(-) 100 nm AgNP'
-            if cys == 1:
-                solvent = '10 mM NaPi pH 7.4 + 0.1 mM cys'
-            if salt8 == 1:
-                solvent = '10 mM NaPi pH 7.4 + 0.8 mM NaCl'
-            if salt3 == 1:
-                solvent = '10 mM NaPi pH 7.4 + 3.0 mM NaCl'
-
-            file.write('{}, {}, {}, {}, {}, {}, {}\n'.format(protein, particle, solvent, bound, predicted_bound,round(pred, 2), properly_classified))
-
-
-def hold_in_memory(classification_information, metrics, iterations, test_size):
-    """Holds classification data in memory to be exported to excel
-
-    Args:
-        :classification_information (dict): container for all the classification_information from all the runs
-        :metrics (tuple): information from the current test set to add to classification_information
-        :iterations (int): The current test iterations
-        :test_size (int): The amount of values in the current test set
-    Returns:
-        None
-    """
-    i = iterations
-    TEST_SIZE = test_size # 10% of training data is used for testing ceil(10% of 3012)=302
-    PARTICLE_SIZE = 0
-    PARTICLE_CHARGE = 1
-    SOLVENT_CYS = 0
-    SOLVENT_SALT_08 = 1
-    SOLVENT_SALT_3 = 2
-    # Information is placed into numpy arrays as blocks
-    classification_information['all_predict_proba'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[0]
-    classification_information['all_true_results'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[1]
-    classification_information['all_accession_numbers'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[2]
-    classification_information['all_particle_information'][PARTICLE_CHARGE][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Particle Charge_1']
-    classification_information['all_particle_information'][PARTICLE_SIZE][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Particle Size_10']
-    classification_information['all_solvent_information'][SOLVENT_CYS][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Solvent Cysteine Concentration_0.1']
-    classification_information['all_solvent_information'][SOLVENT_SALT_08][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Solvent NaCl Concentration_0.8']
-    classification_information['all_solvent_information'][SOLVENT_SALT_3][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Solvent NaCl Concentration_3.0']
+    predicted_value_stats.to_csv(path_or_buf='Output_Files/predicted_value_statistics.csv')
 
 
 if __name__ == "__main__":

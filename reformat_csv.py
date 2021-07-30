@@ -148,7 +148,7 @@ if __name__ == '__main__':
 
     current_dataset = pd.read_csv('Input_Files/__updated__database.csv')
     current_dataset = replace_columns_from_other_file('Input_Files/database.csv', ['Protein Abundance'], current_dataset)
-    older_dataset = pd.read_csv('Input_Files/_updated_database.csv')
+    older_dataset = pd.read_csv('Input_Files/database.csv')
     # save_to_csv(current_dataset, '__updated__database.csv')
     # print(current_dataset.columns)
     # print(older_dataset.columns)
