@@ -121,7 +121,6 @@ if __name__ == '__main__':
 
     # visualize the feature_importances in a bar graph
     visualization_utils.visualize_feature_importances(average_feature_importances)
-    sys.exit(0)
 
     # save error metrics + feature importances
     data_utils.save_metrics(average_error_metrics, average_feature_importances, predicted_values_stats)
