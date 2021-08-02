@@ -1,32 +1,24 @@
 
 ############ Average Error Metric Scores ############
-average MSE: 5.216489845545703e-06
-average RMSE: 0.00222320763027439
-average MAE: 0.0009367206333328924
-average MAPE: 2.493242733951734
+average MSE: 4.988020181773999e-06
+average RMSE: 0.002184658369081099
+average MAE: 0.0009287872294467225
+average MAPE: 2.491741646206652
 
 ############ Average Feature Importance Scores ############
-Average Gini importance for Protein Weight: 0.17833832585027068
-Average Gini importance for Protein Abundance: 0.1711548490341812
-Average Gini importance for pI: 0.09500182622516212
-Average Gini importance for % H-bond/polar AA: 0.0730627565864571
-Average Gini importance for Enzyme Commission Number_1: 0.05768128538202111
-Average Gini importance for Particle Charge_1: 0.052829520304781614
-Average Gini importance for Particle Charge_0: 0.05231835837604005
-Average Gini importance for % Negative: 0.0488051689008453
-Average Gini importance for GRAVY: 0.04627821579111394
-Average Gini importance for % Hydrophilic: 0.04441201648660901
-Average Gini importance for % Aromatic: 0.032082555377596994
-Average Gini importance for % Cysteine: 0.028893391727540216
-Average Gini importance for % Positive: 0.027301597693905045
-Average Gini importance for Solvent NaCl Concentration_0.0: 0.024052195809881317
-Average Gini importance for Enzyme Commission Number_4: 0.011624723561046857
-Average Gini importance for Particle Size_10: 0.008428468955863326
-Average Gini importance for Particle Size_100: 0.008270789485020242
-Average Gini importance for # of Metal Bonds: 0.007855350938677516
-Average Gini importance for Solvent NaCl Concentration_0.8: 0.0073190713615946005
-Average Gini importance for Solvent Cysteine Concentration_0.1: 0.00632204526183452
-Average Gini importance for Solvent Cysteine Concentration_0.0: 0.006117222217117718
-Average Gini importance for Enzyme Commission Number_0: 0.004844857725454739
-Average Gini importance for Solvent NaCl Concentration_3.0: 0.004642713056221268
-Average Gini importance for Enzyme Commission Number_5: 0.00236269389076351
+Average Gini importance for Protein Weight: 0.17957310977773552
+Average Gini importance for Protein Abundance: 0.16944220215385133
+Average Gini importance for Nanomaterial Charge: 0.108633197280783
+Average Gini importance for pI: 0.0921630941767649
+Average Gini importance for Enzyme Commission Numbers: 0.07865343937792144
+Average Gini importance for % H-bond/polar AA: 0.07302603050024245
+Average Gini importance for % Negative Amino Acids: 0.04788059528917976
+Average Gini importance for GRAVY: 0.047386598980254574
+Average Gini importance for % Hydrophilic Amino Acids: 0.04389453523908232
+Average Gini importance for Solvent NaCl Concentration: 0.03625395809304504
+Average Gini importance for % Aromatic Amino Acids: 0.031154302663960583
+Average Gini importance for % Cysteine Amino Acids: 0.02899430120269204
+Average Gini importance for % Positive Amino Acids: 0.026657572946199394
+Average Gini importance for Nanomaterial Size: 0.016208237167682497
+Average Gini importance for Solvent Cysteine Concentration: 0.012094135187672838
+Average Gini importance for # of Metal Bonds: 0.007984689962932324
