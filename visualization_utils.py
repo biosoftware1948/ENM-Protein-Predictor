@@ -98,15 +98,57 @@ def visualize_feature_importances(feature_importances):
     importance value
     Returns: None
     """
+    # NOTE: Need to consolidate Solvent NaCl concentration, Solvent Cysteine, Nanomaterial Size, and Nanomaterial Charge
+    # combine similar features to reduce redundancy
+    nacl_solvent = ['Solvent NaCl Concentration_0.0', 'Solvent NaCl Concentration_0.8', 'Solvent NaCl Concentration_3.0']
+    cys_solvent = ['Solvent Cysteine Concentration_0.0', 'Solvent Cysteine Concentration_0.1']
+    enzyme_commission_number = ['Enzyme Commission Number_0', 'Enzyme Commission Number_1', 'Enzyme Commission Number_4'
+                                , 'Enzyme Commission Number_5']
+    nano_size = ['Particle Size_10', 'Particle Size_100']
+    nano_charge = ['Particle Charge_0', 'Particle Charge_1']
+    amino_acids = ['% Hydrophilic', '% Cysteine', '% Aromatic', '% Negative', '% Positive']
+
+    combined_nacl = 0
+    for nacl_sol in nacl_solvent:
+        combined_nacl += feature_importances.pop(nacl_sol)
+    feature_importances['Solvent NaCl Concentration'] = combined_nacl
+
+    combined_cys = 0
+    for cys_sol in cys_solvent:
+        combined_cys += feature_importances.pop(cys_sol)
+    feature_importances['Solvent Cysteine Concentration'] = combined_cys
+
+    combined_enzy = 0
+    for enzyme_num in enzyme_commission_number:
+        combined_enzy += feature_importances.pop(enzyme_num)
+    feature_importances['Enzyme Commission Numbers'] = combined_enzy
+
+    combined_nano_size = 0
+    for n_size in nano_size:
+        combined_nano_size += feature_importances.pop(n_size)
+    feature_importances['Nanomaterial Size'] = combined_nano_size
+
+    combined_nano_charge = 0
+    for n_charge in nano_charge:
+        combined_nano_charge += feature_importances.pop(n_charge)
+    feature_importances['Nanomaterial Charge'] = combined_nano_charge
+
+    for a_acid in amino_acids:
+        key = a_acid + ' Amino Acids'
+        feature_importances[key] = feature_importances.pop(a_acid)
+
+    feature_importances = dict(sorted(feature_importances.items(), key=lambda item: item[1]))
     features = list(feature_importances.keys())
     values = list(feature_importances.values())
 
+    f, ax = plt.subplots(figsize=(16,5))
     plt.barh(features, values)
-    plt.title('Averaged Gini Feature Importance Scores', fontsize=25)
-    plt.ylabel('Features')
-    plt.xlabel('Averaged Gini Feature Importance Score')
+    plt.title('Averaged Gini Feature Importance Scores', fontsize=20)
+    plt.xlabel('Averaged Gini Feature Importance Score', fontsize=14)
+    plt.yticks(fontsize=14)
+    plt.tight_layout()
 
-    plt.savefig('Output_Files/averaged_feature_importances.png')
+    plt.savefig('Output_Files/averaged_feature_importances.png', bbox_inches='tight')
     plt.show()
 
 
