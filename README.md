@@ -1,28 +1,20 @@
-<h1> This Script Predicts Interactions between engineered nanomaterials and proteins under relevant biological conditions </h1>
-<p> This is funded undergraduate research from the Dr. Wheeler lab at Santa Clara University </p>
-<p> Written by Matthew Findlay 2017 <p>
+<h1> This random forest regressor predicts the amount of protein bound to the protein corona, and thus gives further insight to the interactions between ENM’s (Engineered Nanomaterials) and proteins under relevant biological conditions </h1>
+<p> This undergraduate research is funded by the De Novo Fellowship at Santa Clara University  </p>
+<p> Written by Matthew Findlay 2017, further developed by Joseph Pham Nguyen 2021 <p>
 <p> Fork me and feel free to contribute your research <p>
 <h2> Implementation </h2>
-<p> This script uses a random forest classifier to make predictions. Several different machine learning algorithms and ensembles were used but we ultimately decided to stick with random forests due to their human readability <p>
+<p> Currently, a random forest regressor is being used as a baseline for future predictions upon predicting the amount of protein that is bound to the protein corona. <p>
 <h2> Data </h2>
 The experiments were setup by Danny Freitas (undergraduate bioengineering). Danny reacts nanomaterials and extracted proteins, and sends his samples to stanford where LC/MS/MS is used
 To produce the spectral counts of proteins on the surface of engineered nanoparticles (bound), and proteins not on the surface of particles (unbound). Data was
-mined from online databases to find the length of the proteins. The spectral counts were divided by the length of the proteins,
-normalized, and a ratio was created giving a NSAF value representing the enrichment of specific proteins onto the surface of nanomaterials.
-With this enrichment factor, databases were mined for protein characteristics, and this information was used to predict if a given protein
-and nanomaterial pair will bind
+mined from online databases to find the length of the proteins. The spectral counts were divided by the length of the proteins and normalized.
 <h2> How to use </h2>
-<p>To run the pipeline and reproduce the results call "python estimator.py (insert # of runs) (insert output file) (2 command line arguments).
-An example call might be "python estimator.py 50 output.zip".  This
-will output the statistics and feature importances to the "output file" in JSON format. This will also
-output all the classification information to a csv file.  To see the statistics and feature importances
-in a readable format call "statistic_parser.py (output_file) and the results will be printed to the
-command line.  If you want to visualize your data, simply type "python visualization_utils.py (insert output file here)".
+<p>To run the pipeline and reproduce the results call "python estimator.py (insert # of runs).
+An example call might be "python estimator.py 50".  This
+will output the statistics and feature importances to a few output files in the “Output_Files” folder. Most of the regression information will be stored in a CSV file. If you want to visualize your data, simply type "python visualization_utils.py (insert output file here)".
 It'll create and display the various figures and graphs for you.</p>
 <h2> Predicting your own data</h2>
-<p> To make predictions of your own data go to the main function in estimator.py. Set db.predict = "your_csv_path". This will use our data to make predictions on yours. A csv file will be outputted
-with easily interpretable results. Be weary of predictions that fall within the 0.4-0.6 probability range
-as these are considered unreliable </p>
+<p> To make predictions of your own data go to the main function in estimator.py. Set db.predict = "your_csv_path". This will use our data to make predictions on yours. A csv file will be outputted with easily interpretable results.</p>
 <h2> python files </h2>
 <h3> estimator.py </h3>
 <p> contains main(). Runs the estimator and includes lines to run recursive feature elimination
@@ -31,24 +23,29 @@ or grid search.</p>
 <p>contains tools to build and optimize the estimator.</p>
 <h3> visualization_tools.py </h3>
 <p>Contains some fun functions to help us visualize the ENM data </p>
-<h3> validator.py </h3>
-<p> Contains functions and classes that make it easy to validate the model performance </p>
-<h3>statistic_parser.py</h3>
-<p> parses the model JSON output and prints it in readable format to the command line </p>
+<h3>validation_utils.py</h3>
+<p> Contains functions to calculate, store, and format statistics on the model performance </p>
+<h3>reformat_csv.py</h3>
+<p>contains various functions to perform basic CSV reformatting operations. Largely used for creating different datasets for testing.</p>
 <h2> Input Files </h2>
 <h3>database.csv</h3>
-<p> contains the database </p>
-<h3>mask.txt</h3>
-<p> a boolean mask produced by recursive feature elimination and cross validation.
-This mask is applied to the database to produce an optimal amount of features </p>
+<p>contains the database</p>
+<h3>_mask.txt</h3>
+<p>A boolean mask produced by recursive feature elimination and cross validation. This mask is applied to the database to produce an optimal amount of features.</p>
 <h2> Output Files </h2>
-<h3> final.json </h3>
-<p>non stratified results from running the model 50x</p>
-<h3>stratified_final.json</h3>
-<p>stratified results from running the model 50x</p>
-<h3>prediction_probability.csv</h3>
-<p>contains an excel file with information about predictions</p>
-<h3>stratified_prediction_probability.csv</h3>
-<p>contains an excel file with information about stratified predictions</p>
-<h3> y_randomization.csv</h3>
-<p>results from the y_randomization_test</p>
+<h3> bound_fraction.png </h3>
+<p>Provides a visualization of the distribution of the target variable</p>
+<h3> dataset_info.txt </h3>
+<p>provides basic information on the structure of our dataset</p>
+<h3> dataset_numerical_attributes.csv </h3>
+<p>contains more in-depth statistical information on our dataset</p>
+<h3> histogram_dataset.png </h3>
+<p>contains plots of the distributions from our dataset</p>
+<h3>averaged_feature_importances.png</h3>
+<p>a bar plot visualizing the averaged importance scores of the optimal features inputted into the model</p>
+<h3> model_evaluation_info.txt </h3>
+<p>provides information about averaged error metrics and feature importances for optimal features</p>
+<h3>predicted_value_statistics.csv</h3>
+<p>contains statistics on the predicted values generated by the model</p>
+<h3>rfecv_visualization.png</h3>
+<p>Visualizes the accuracy based on the number of features that are selected from the recursive feature elimination and cross validation.</p>
