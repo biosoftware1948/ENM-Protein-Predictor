@@ -43,12 +43,12 @@ for run in data:
             average_importances[key] = value
             std_importances[key] = [value]
 
-#Divide average values to get mean
+# Divide average values to get mean
 for key, value in average_metrics.items():
     average_metrics[key] = value/runs
 for key, value in average_importances.items():
     average_importances[key] = value/runs
-#Print
+# Print
 print("#########Confusion Matrix over all 50 runs#########")
 print("unbound: {}, {}\nbound: {}, {}\n".format(confusion_matrix[0],confusion_matrix[1],confusion_matrix[2],confusion_matrix[3]))
 

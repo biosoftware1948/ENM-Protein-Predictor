@@ -63,7 +63,7 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
     est.fit(db.X_train, db.Y_train)
     probability_prediction = est.predict_proba(db.X_test)[:,1]
 
-    # validator.y_randomization_test(est, db) #run y_randomization_test
+    validator.y_randomization_test(est, db) # run y_randomization_test
     val = validation_utils.validation_metrics(db.Y_test, probability_prediction)
     classification_information = (probability_prediction, db.Y_test, db.test_accesion_numbers, db.X_test)
     feature_importances = dict(zip(list(db.X_train), est.feature_importances_))
@@ -126,7 +126,6 @@ if __name__ == '__main__':
         metrics = pipeline(db)
         # hold scores and importance data in json format
         results["Run_" + str(i)] = {'scores': metrics[SCORES], 'importances': metrics[IMPORTANCES]}
-        # print(results)
         # hold classification information in arrays to output to excel file
         data_utils.hold_in_memory(classification_information, metrics[INFORMATION], i, test_size)
 

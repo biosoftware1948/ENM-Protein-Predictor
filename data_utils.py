@@ -324,6 +324,7 @@ class data_base(object):
         else:
             self._predict = path
 
+
 def normalize_and_reshape(data, labels):
     """Normalize and reshape the data by columns while preserving labels
     information
@@ -339,6 +340,7 @@ def normalize_and_reshape(data, labels):
     data = pd.concat([labels, data], axis=1)
     data.reset_index(drop=True, inplace=True)
     return data
+
 
 def classify(data, cutoff):
     """
