@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import math
+import sys
 
 
 class visualize_data(object):
@@ -91,11 +92,13 @@ def visualize_rfecv(grid_scores):
     plt.show()
 
 
-def visualize_feature_importances(feature_importances):
+def visualize_feature_importances(feature_importances, stddev):
     """ Plot the averaged feature importances from the most to least important as a bar graph
     Args:
         :param: feature_importances (dict): a dictionary containing the features and their corresponding averaged Gini
-    importance value
+        importance value
+        :param: stddev (dict): dictionary containing the features and corresponding standard deviations for calculating
+        error bars
     Returns: None
     """
     # NOTE: Need to consolidate Solvent NaCl concentration, Solvent Cysteine, Nanomaterial Size, and Nanomaterial Charge
@@ -109,40 +112,72 @@ def visualize_feature_importances(feature_importances):
     amino_acids = ['% Hydrophilic', '% Cysteine', '% Aromatic', '% Negative', '% Positive']
 
     combined_nacl = 0
+    combined_nacl_stddev = 0
     for nacl_sol in nacl_solvent:
         combined_nacl += feature_importances.pop(nacl_sol)
+        combined_nacl_stddev += stddev.pop(nacl_sol)
     feature_importances['Solvent NaCl Concentration'] = combined_nacl
+    stddev['Solvent NaCl Concentration'] = combined_nacl_stddev
 
     combined_cys = 0
+    combined_cys_stddev = 0
     for cys_sol in cys_solvent:
         combined_cys += feature_importances.pop(cys_sol)
+        combined_cys_stddev += stddev.pop(cys_sol)
     feature_importances['Solvent Cysteine Concentration'] = combined_cys
+    stddev['Solvent Cysteine Concentration'] = combined_cys
 
     combined_enzy = 0
+    combined_enzy_stddev = 0
     for enzyme_num in enzyme_commission_number:
         combined_enzy += feature_importances.pop(enzyme_num)
+        combined_enzy_stddev += stddev.pop(enzyme_num)
     feature_importances['Enzyme Commission Numbers'] = combined_enzy
+    stddev['Enzyme Commission Numbers'] = combined_enzy_stddev
 
     combined_nano_size = 0
+    combined_nano_size_stddev = 0
     for n_size in nano_size:
         combined_nano_size += feature_importances.pop(n_size)
+        combined_nano_size_stddev += stddev.pop(n_size)
     feature_importances['Nanomaterial Size'] = combined_nano_size
+    stddev['Nanomaterial Size'] = combined_nano_size_stddev
 
     combined_nano_charge = 0
+    combined_nano_charge_stddev = 0
     for n_charge in nano_charge:
         combined_nano_charge += feature_importances.pop(n_charge)
+        combined_nano_charge_stddev += stddev.pop(n_charge)
     feature_importances['Nanomaterial Charge'] = combined_nano_charge
+    stddev['Nanomaterial Charge'] = combined_nano_charge_stddev
 
     for a_acid in amino_acids:
         key = a_acid + ' Amino Acids'
         feature_importances[key] = feature_importances.pop(a_acid)
+        stddev[key] = stddev.pop(a_acid)
 
     feature_importances = dict(sorted(feature_importances.items(), key=lambda item: item[1]))
     features = list(feature_importances.keys())
     values = list(feature_importances.values())
 
+    # reorder standard deviation with respected to sorted feature importances + color code based on qualities
+    protein = ['Protein Weight', 'Protein Abundance', 'pI', 'Enzyme Commission Numbers', '% H-bond/polar AA',
+               '% Negative Amino Acids', 'GRAVY', '% Hydrophilic Amino Acids', '% Aromatic Amino Acids',
+               '% Cysteine Amino Acids', '% Positive Amino Acids', '# of Metal Bonds']
+    nanomaterial = ['Nanomaterial Charge', 'Nanomaterial Size']
+    bar_colors = []
+
+    for key in features:
+        if key in protein:
+            bar_colors.append('xkcd:teal')
+        elif key in nanomaterial:
+            bar_colors.append('xkcd:grey')
+        else:
+            bar_colors.append('xkcd:gold')
+        stddev[key] = stddev.pop(key)
+
     f, ax = plt.subplots(figsize=(16,5))
-    plt.barh(features, values)
+    plt.barh(features, values, xerr=stddev.values(), color=bar_colors, ecolor='black', capsize=1.0)
     plt.title('Averaged Gini Feature Importance Scores', fontsize=20)
     plt.xlabel('Averaged Gini Feature Importance Score', fontsize=14)
     plt.yticks(fontsize=14)

@@ -198,9 +198,11 @@ class validation_metrics(object):
             true_val = self._sorted_predicted_results.at[idx, 'True Value']
             self._sorted_predicted_results.at[idx, '% Error Difference'] = (abs(avg_val - true_val))/true_val
 
-        # calculate average of feature importances
+        # calculate average + standard deviation of feature importances
+        stddev = {}
         for feat in self._feature_importances.keys():
+            stddev[feat] = stat.stdev((self._feature_importances[feat]))
             self._feature_importances[feat] = stat.mean(self._feature_importances[feat])
 
-        return dict(zip(keys, avg_errs_vals)), self._sorted_predicted_results, self._feature_importances
+        return dict(zip(keys, avg_errs_vals)), self._sorted_predicted_results, self._feature_importances, stddev
 
