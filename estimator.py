@@ -17,7 +17,7 @@ engineered nanomaterials under a variety of relevant biological conditions. We s
 LC-MS/MS facilities to identify the proteins and their associated spectral counts. We then mine online databases to
 create a database containing information about the proteins, particles, and solvent conditions.
 To make predictions from our database we use a random forest regression algorithm.
-We validate our regressions with several statistical methods like root mean squared error .
+We validate our regressions with several statistical methods like root mean squared error.
 """
 
 import data_utils
@@ -25,13 +25,14 @@ import numpy as np
 import predictor_utils
 from sklearn.ensemble import RandomForestRegressor
 import validation_utils
+import visualization_utils
 import sys
 import json
+import argparse
+import os
 
-import visualization_utils
 
-
-def pipeline(db, validation, optimize=False, RFECV=False):
+def pipeline(db, validation, optimize, RFECV):
     """
     Runs the pipeline. Trains and evaluates the estimator, outputs metrics and
     information about the model performance.
@@ -47,7 +48,7 @@ def pipeline(db, validation, optimize=False, RFECV=False):
     """
     if db.predict is None:
         # We split our own data for training and testing if user isn't predicting their own data
-        db.stratified_data_split()
+        db.data_split()
 
     # apply the RFECV mask to only keep selected features from the RFECV algorithm
     db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_mask.txt', db.X_train, db.X_test)
@@ -95,18 +96,38 @@ class NpEncoder(json.JSONEncoder):
             return super(NpEncoder, self).default(obj)
 
 
+def check_file_path(file_path: str) -> str:
+    if os.path.exists(file_path):
+        return file_path
+    else:
+        print("\nInvalid file path. Please input an existing filepath to desired file.\n")
+
+
 if __name__ == '__main__':
-    assert len(sys.argv) == 2, "First command line argument is the amount of times to run the model"
-
-    iterations = int(sys.argv[1])
-
-    # Initialize our database
+    # Initialize database
     db = data_utils.data_base()
     db.raw_data = "Input_Files/database.csv"
     db.clean_raw_data()
 
-    # To use our data to predict yours, set your data below and uncomment:
-    # db.predict = "your_csv_path" #<-----Set your own data here
+    # parse command line arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('script', help="script with which to run the model", type=str)
+    parser.add_argument('iterations', help="number of times to run the model", type=int)
+    parser.add_argument('-i', '--input', help="file path to your csv file to make predictions on", type=check_file_path,
+                        default=None)
+    parser.add_argument('-o', '--optimize', help="specify boolean value on whether or not to run GridSearchCV",
+                        type=bool, default=False)
+    parser.add_argument('-r', '--rfecv', help="specify boolean value on whether or not to run RFECV",
+                        type=bool, default=False)
+    args = vars(parser.parse_args(sys.argv))
+
+    # process arguments
+    iterations = args['iterations']
+    opt = args['optimize']
+    rfecv = args['rfecv']
+
+    if args['input'] is not None:
+        db.predict = args['input']
 
     # error metric values will be set during the pipeline
     val = validation_utils.validation_metrics()
@@ -114,7 +135,7 @@ if __name__ == '__main__':
     # Run the model multiple times and store results
     for i in range(0, iterations):
         print("Run Number: {}".format(i))
-        pipeline(db, validation=val)
+        pipeline(db, validation=val, optimize=opt, RFECV=rfecv)
 
     # calculate the average error metric scores + average predicted value
     average_error_metrics, predicted_values_stats, average_feature_importances, stddev = val.calculate_final_metrics()

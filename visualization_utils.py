@@ -7,8 +7,12 @@ import data_utils
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
+import argparse
 import math
+import os
 import sys
+
+import estimator
 
 
 class visualize_data(object):
@@ -188,8 +192,16 @@ def visualize_feature_importances(feature_importances, stddev):
 
 
 if __name__ == "__main__":
+    # parse arguments
+    parser = argparse.ArgumentParser()
+    parser.add_argument('script', help="script with which to run the model", type=str)
+    parser.add_argument('-i', '--input', help="file path to your csv file to visualize distributions",
+                        type=estimator.check_file_path, default="Input_Files/database.csv")
+    args = vars(parser.parse_args())
+
+    # initialize database and create useful distributions analyze
     db = data_utils.data_base()
-    db.raw_data = "Input_Files/database.csv"
+    db.raw_data = args['input']
     bound_fraction_data = db.raw_data['Bound Fraction']
     db.clean_raw_data()
 
