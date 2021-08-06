@@ -48,7 +48,6 @@ def apply_RFECV_mask(mask, *args):
 def remove_extra_entries(mask):
     """Remove extra entries like '' or '\n' in the binary mask iff the length of mask does not match the corresponding
     dataframe length
-
     Args:
         :param: mask (array): the binary mask as a list of values
     Returns: mask (array): the binary mask with extraneous values removed from end of list
@@ -159,11 +158,11 @@ class data_base(object):
         self.X_train = self.X_train.drop('Accession Number', 1)
         self.X_test = self.X_test.drop('Accession Number', 1)
 
-    def stratified_data_split(self):
+    def data_split(self):
         """Uses KFold Cross Validation with 5 folds to randomly split our data into training and testing sets
         Args, Returns: None
         """
-        assert self.predict is None, "Remove stratified_data_split() if using your own data"
+        assert self.predict is None, "Remove data_split() if using your own data"
 
         kf = model_selection.KFold(n_splits=5, random_state=int((random.random()*100)), shuffle=True)
         for train_index, test_index in kf.split(self.clean_X_data):
@@ -176,9 +175,7 @@ class data_base(object):
 
     @staticmethod
     def fetch_raw_data(enm_database):
-        """Fetches enm-protein data from a csv file
-        called by assignment operator for db.raw_data
-
+        """Fetches enm-protein data from a csv file called by assignment operator for db.raw_data
         Args:
             :param enm_database (str): path to csv database
         Returns:
@@ -324,17 +321,16 @@ class data_base(object):
     def predict(self, path):
         if os.path.isfile(path):
             self._predict = self.fetch_raw_data(path)
-            self._predict = self.clean_user_test_data(self._predict)
+            self.clean_user_test_data(self._predict)
         else:
             self._predict = path
 
 
 def normalize_and_reshape(data, labels):
     """Normalize and reshape the data by columns while preserving labels information
-
     Args:
-        :param data (pandas df): The data to normalize
-        :param labels (pandas series): The column labels
+        :param: data (pandas df): The data to normalize
+        :param: labels (pandas series): The column labels
     Returns:
         :param data (pandas df): normalized dataframe with preserved column labels
     """
@@ -369,8 +365,8 @@ def fill_nan(data, column):
 def one_hot_encode(dataframe, category):
     """This function converts categorical variables into one hot vectors
     Args:
-        :param dataframe (pandas Dataframe): Dataframe containing column to be encoded
-        :param category (String): specifying the column to encode
+        :param: dataframe (pandas Dataframe): Dataframe containing column to be encoded
+        :param: category (String): specifying the column to encode
     Returns:
         :dataframe (Pandas Dataframe): With the specified column now encoded into a one
         hot representation
@@ -380,33 +376,6 @@ def one_hot_encode(dataframe, category):
     dataframe = pd.concat([dataframe, dummy], axis=1)
     dataframe.drop(category, axis=1, inplace=True)
     return dataframe
-
-
-def clean_print(obj):
-    """Prints the JSON in a clean format for all my biochemistry friends
-    Args:
-        :param obj (object): Any object you wish to print in readable format
-    Returns:
-        None
-    """
-    if isinstance(obj, dict):
-        for key, val in obj.items():
-            if hasattr(val, '__iter__'):
-                print("\n" + key)
-                clean_print(val)
-            else:
-                print('%s : %s' % (key, val))
-    elif isinstance(obj, list):
-        for val in obj:
-            if hasattr(val, '__iter__'):
-                clean_print(val)
-            else:
-                print(val)
-    else:
-        if isinstance(obj, pd.DataFrame):
-            clean_print(obj.to_dict(orient='records'))
-        else:
-            print(str(obj) + "\n")
 
 
 def save_metrics(error_metrics, feature_importances, predicted_value_stats):
@@ -433,6 +402,7 @@ def save_metrics(error_metrics, feature_importances, predicted_value_stats):
             print("Average Gini importance for {}: {}".format(feat, feature_importances[feat]))
             f.write("Average Gini importance for {}: {}\n".format(feat, feature_importances[feat]))
 
+    # simply output formatted DataFrame to an easy to read CSV file
     predicted_value_stats.to_csv(path_or_buf='Output_Files/predicted_value_statistics.csv')
 
 

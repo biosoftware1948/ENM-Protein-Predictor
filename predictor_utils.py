@@ -1,6 +1,7 @@
 """Developed by: Matthew Findlay 2017
+Modified by: Joseph Pham Nguyen 2021
 
-This module contains the overloaded RandomForestRegressor and methods to help
+This module contains the RandomForestRegressor and methods to help
 us with feature engineering and model optimization.
 """
 import os
@@ -42,12 +43,11 @@ def optimize(model, X_train, Y_train):
 def recursive_feature_elimination(model, X_train, Y_train, mask_file):
     """Runs RFECV with 5 folds, stores optimum features
     useful for feature engineering in a text file as a binary mask
-
     Args:
-        :param model (obj): The sklean model you wish to optimize
-        :param X_train (array): The X values of training data
-        :param Y_train (array): The Y values of the training data
-        :param mask_file (string): Path to a textfile to write binary mask
+        :param: model (obj): The sklean model you wish to optimize
+        :param: X_train (array): The X values of training data
+        :param: Y_train (array): The Y values of the training data
+        :param: mask_file (string): Path to a textfile to write binary mask
     Returns:
         None
     """
