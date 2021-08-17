@@ -3,18 +3,37 @@
 <p> Written by Matthew Findlay 2017, further developed by Joseph Pham Nguyen 2021 <p>
 <p> Fork me and feel free to contribute your research <p>
 <h2> Implementation </h2>
-<p> Currently, a random forest regressor is being used as a baseline for future predictions upon predicting the amount of protein that is bound to the protein corona. <p>
+<p> Here, a random forest regressor is being used as a baseline for future predictions upon predicting the amount of protein that is bound to the protein corona. <p>
 <h2> Data </h2>
 The experiments were setup by Danny Freitas (undergraduate bioengineering). Danny reacts nanomaterials and extracted proteins, and sends his samples to stanford where LC/MS/MS is used
 To produce the spectral counts of proteins on the surface of engineered nanoparticles (bound), and proteins not on the surface of particles (unbound). Data was
 mined from online databases to find the length of the proteins. The spectral counts were divided by the length of the proteins and normalized.
 <h2> How to use </h2>
 <p>To run the pipeline and reproduce the results call "python estimator.py (insert # of runs).
-An example call might be "python estimator.py 50".  This
-will output the statistics and feature importances to a few output files in the “Output_Files” folder. Most of the regression information will be stored in a CSV file. If you want to visualize your data, simply type "python visualization_utils.py (insert output file here)".
-It'll create and display the various figures and graphs for you.</p>
-<h2> Predicting your own data</h2>
-<p> To make predictions of your own data go to the main function in estimator.py. Set db.predict = "your_csv_path". This will use our data to make predictions on yours. A csv file will be outputted with easily interpretable results.</p>
+An example call might be "python estimator.py 50". This
+will output the statistics and feature importances to a few output files in the “Output_Files” folder. Most of the regression information will be stored in a CSV file. If you want to visualize your data, simply type "python visualization_utils.py (input filepath)".
+It'll create, display, and save the various figures and graphs for you.</p>
+<h2>Custom Command-Line Arguments</h2>
+<p>To make it easier to run the model for certain tasks, here is the list of specific custom CLI commands you can use.</p>
+<ol>
+    <li>estimator.py</li>
+        <ul>
+            <li>script (required): the main script that's being run (estimator.py)</li>
+            <li>iterations (required): number of times to run the script</li>
+            <li>input (-i, --i, argtype: filepath, optional): a file path to a desired input CSV file to make predictions on. If not provided, we make predictions on our own dataset</li>
+            <li>optimize (-o, --optimize, argtype: boolean, optional): use GridSearchCV to tune RandomForestRegressor hyperparameters to optimize performance</li>
+            <li>rfecv (-r, --rfecv, argtype: boolean, optional): use RFECV for feature selection to extract most useful input features</li>
+            <li>example custom CLI command: "python3 estimator.py 50 -i Input_Files/example.csv" --> make predictions on example.csv</li>
+            <li>for more information, simply type "python3 estimator.py -h"</li>
+        </ul>
+    <li>visualization_utils.py</li>
+        <ul>
+            <li>script (required): the main script that's being run (visualization_utils.py)</li>
+            <li>input (-i, --i, argtype: filepath, optional): a file path to a desired input CSV file to make predictions on. If not provided, we make predictions on our own dataset</li>
+            <li>example custom CLI command: "python3 estimator.py -i Input_Files/example.csv -o True" --> make predictions on example.csv and run GridSearchCV</li>
+            <li>for more information, simply type "python3 visualizations.py -h"</li>
+        </ul>
+</ol>
 <h2> python files </h2>
 <h3> estimator.py </h3>
 <p> contains main(). Runs the estimator and includes lines to run recursive feature elimination
