@@ -1,7 +1,7 @@
 """Developed by: Matthew Findlay 2017
 Modified by: Joseph Pham Nguyen 2021
 
-This Module contains the database class that handles all of the data gathering
+This module contains the database class that handles all of the data gathering
 and cleaning. It also contains functions that help us work with our data.
 """
 import os
@@ -403,7 +403,7 @@ def save_metrics(error_metrics, feature_importances, predicted_value_stats):
             f.write("Average Gini importance for {}: {}\n".format(feat, feature_importances[feat]))
 
     # simply output formatted DataFrame to an easy to read CSV file
-    predicted_value_stats.to_csv(path_or_buf='Output_Files/predicted_value_statistics.csv')
+    predicted_value_stats.to_csv(path_or_buf='Output_Files/predicted_value_statistics.csv', index=False)
 
 
 if __name__ == "__main__":
