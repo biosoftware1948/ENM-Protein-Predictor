@@ -1,18 +1,14 @@
 """ Developed by: Matthew Findlay 2017
-
+Modified by: Joseph Pham Nguyen 2021
 This module contains all the visualization tools used to analyze our data.
 """
-from __future__ import division
 import data_utils
+import estimator
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
 import argparse
 import math
-import os
-import sys
-
-import estimator
 
 
 class visualize_data(object):
@@ -105,7 +101,6 @@ def visualize_feature_importances(feature_importances, stddev):
         error bars
     Returns: None
     """
-    # NOTE: Need to consolidate Solvent NaCl concentration, Solvent Cysteine, Nanomaterial Size, and Nanomaterial Charge
     # combine similar features to reduce redundancy
     nacl_solvent = ['Solvent NaCl Concentration_0.0', 'Solvent NaCl Concentration_0.8', 'Solvent NaCl Concentration_3.0']
     cys_solvent = ['Solvent Cysteine Concentration_0.0', 'Solvent Cysteine Concentration_0.1']

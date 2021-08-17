@@ -4,10 +4,10 @@ Modified by: Joseph Pham Nguyen 2021
 This module contains the RandomForestRegressor and methods to help
 us with feature engineering and model optimization.
 """
+import visualization_utils
 import os
 from sklearn.feature_selection import RFECV
 from sklearn.model_selection import GridSearchCV
-import visualization_utils
 
 
 def optimize(model, X_train, Y_train):

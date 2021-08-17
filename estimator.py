@@ -21,11 +21,11 @@ We validate our regressions with several statistical methods like root mean squa
 """
 
 import data_utils
+import validation_utils
+import visualization_utils
 import numpy as np
 import predictor_utils
 from sklearn.ensemble import RandomForestRegressor
-import validation_utils
-import visualization_utils
 import sys
 import json
 import argparse
