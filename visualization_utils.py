@@ -2,14 +2,10 @@
 
 This module contains all the visualization tools used to analyze our data.
 """
-from __future__ import division
 import data_utils
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
-import math
-from mpl_toolkits.mplot3d import Axes3D
-from string import ascii_letters
 
 
 class visualize_data(object):
@@ -273,12 +269,27 @@ class visualize_data(object):
             ax.text(j, i, '{:0.1f}'.format(z), ha='center', va='center')
 
         plt.imshow(corr, cmap='RdYlGn', interpolation='none', aspect='auto', vmin=-1, vmax=1)
-        plt.colorbar(ticks = (-1.0, -0.5, 0, 0.5, 1))
+        plt.colorbar(ticks=(-1.0, -0.5, 0, 0.5, 1))
         plt.xticks(range(len(corr)), corr.columns, rotation='vertical', fontsize=20)
-        plt.yticks(range(len(corr)), corr.columns, fontsize=20);
+        plt.yticks(range(len(corr)), corr.columns, fontsize=20)
         # plt.suptitle('Correlation plot of protein features', fontsize=22, fontweight='bold')
         plt.tight_layout()
         plt.show()
+
+
+def visualize_rfecv(grid_scores):
+    """Plots the accuracy obtained with every number of features used from RFECV
+    Args:
+        :param: grid_scores (ndarray): contains cross-validation scores from RFECV
+    Returns: a saved matplotlib graph of the rfecv_visualization
+    """
+    plt.figure(figsize=(16, 9))
+    plt.title('Recursive Feature Elimination with Cross-Validation', fontsize=25, fontweight='bold', pad=20)
+    plt.xlabel('Number of features selected', fontsize=25, labelpad=20)
+    plt.ylabel('% Correct Classification', fontsize=25, labelpad=20)
+    plt.plot(range(1, len(grid_scores) + 1), grid_scores, color='#303F9F', linewidth=3)
+    plt.savefig('Output_Files/rfecv_visualization.png')
+    plt.show()
 
 
 if __name__ == "__main__":
