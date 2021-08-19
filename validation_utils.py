@@ -107,7 +107,7 @@ def y_randomization_test(est, db):
     Returns:
         None
     """
-    with open('y_randomization.csv', 'w') as f:
+    with open('Output_Files/y_randomization.csv', 'w') as f:
         f.write(' , Accuracy, AUROC, F1-Score, Precision, Recall\n')
         for i in range(0, 50):
             probability_prediction = est.predict_proba(db.X_test)[:, 1]
