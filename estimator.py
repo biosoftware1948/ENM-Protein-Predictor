@@ -45,10 +45,14 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
         db.stratified_data_split(test_percentage)
 
     db.X_train, db.X_test = data_utils.apply_RFECV_mask('Input_Files/_mask.txt', db.X_train, db.X_test)
+
     # overloaded RandomForestClassifier with coef
     est = predictor_utils.RandomForestClassifierWithCoef(
-                            n_estimators=1000,
+                            n_estimators=2500,
+                            max_depth=None,
+                            max_features='auto',
                             bootstrap=True,
+                            min_samples_leaf=1,
                             min_samples_split=4,
                             n_jobs=-1,
                             random_state=data_utils.random.randint(1, 2**8)
@@ -57,15 +61,15 @@ def pipeline(db, test_percentage=0.1, optimize=False, RFECV=False):
         predictor_utils.optimize(est, db.X_train, db.Y_train)
         sys.exit(0)
     if RFECV:
-        predictor_utils.recursive_feature_elimination(est, db.X_train, db.Y_train, 'tst.txt')
+        predictor_utils.recursive_feature_elimination(est, db.X_train, db.Y_train, 'Input_Files/_mask.txt')
         sys.exit(0)
 
     est.fit(db.X_train, db.Y_train)
     probability_prediction = est.predict_proba(db.X_test)[:,1]
 
-    validator.y_randomization_test(est, db) # run y_randomization_test
+    validation_utils.y_randomization_test(est, db) # run y_randomization_test
     val = validation_utils.validation_metrics(db.Y_test, probability_prediction)
-    classification_information = (probability_prediction, db.Y_test, db.test_accesion_numbers, db.X_test)
+    classification_information = (probability_prediction, db.Y_test, db.test_accession_numbers, db.X_test)
     feature_importances = dict(zip(list(db.X_train), est.feature_importances_))
     # Remove comments to visualize roc curve and youden index
     # val.youden_index()
@@ -105,7 +109,7 @@ if __name__ == '__main__':
         test_size = db.Y_test.shape[0] # If user has their own data
     else:
         # If not we split our own database for training and testing
-        test_size = 302 # 10% of training data is used for testing 10% of 3012=302
+        test_size = 302  # 10% of training data is used for testing 10% of 3012=302
     TOTAL_TESTED_PROTEINS = test_size*iterations
     SCORES = 0
     IMPORTANCES = 1
@@ -115,7 +119,7 @@ if __name__ == '__main__':
     # Information about classified particle protein pairs
     classification_information = {'all_predict_proba': np.empty([TOTAL_TESTED_PROTEINS], dtype=float),
                                   'all_true_results': np.empty([TOTAL_TESTED_PROTEINS], dtype=int),
-                                  'all_accesion_numbers': np.empty([TOTAL_TESTED_PROTEINS], dtype="S10"),
+                                  'all_accession_numbers': np.empty([TOTAL_TESTED_PROTEINS], dtype="S10"),
                                   'all_particle_information': np.empty([2, TOTAL_TESTED_PROTEINS], dtype=int),
                                   'all_solvent_information': np.empty([3, TOTAL_TESTED_PROTEINS], dtype=int)
                                   }

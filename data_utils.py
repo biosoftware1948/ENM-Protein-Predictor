@@ -6,24 +6,19 @@ and cleaning. It also contains functions that help us work with our data.
 import os
 import pandas as pd
 import numpy as np
-import sklearn
 from sklearn import preprocessing, model_selection
-# from sklearn.model_selection import cross_validate
 import random
 import csv
-import sys
 
 
 def apply_RFECV_mask(mask, *args):
-    """Applies a binary mask to a dataframe to remove columns. Binary mask is
-    created from recursive feature elimination and cross validation and
-    optimizes the generalization of the model
-
+    """Applies a binary mask to a dataframe to remove columns. Binary mask is created from recursive feature elimination
+     and cross validation and optimizes the generalization of the model
     Args:
-        :param mask (string): text file containing the binary mask
-        :param *args (pandas dataframe): Dataframes containing columns to mask
+        :param: mask (string): text file containing the binary mask
+        :param: *args (pandas dataframe): Dataframes containing columns to mask
     Returns:
-        :new dataframes (pandas df): new dataframes with columns removed
+        :updated_args (pandas df): new dataframes with columns removed
     """
     assert os.path.isfile(mask), "please pass a string specifying mask location"
     dir_path = os.path.dirname(os.path.realpath(__file__))
@@ -36,14 +31,33 @@ def apply_RFECV_mask(mask, *args):
     # apply mask to columns
     column_indexes = []
     for dataframe in args:
-        assert len(column_mask) == len(list(dataframe)), 'mask length {} does not match dataframe length {}'.format(len(column_mask), len(list(dataframe)))
+        if len(column_mask) != len(list(dataframe)):
+            column_mask = remove_extra_entries(column_mask)
+            assert len(column_mask) == len(list(dataframe)), 'mask length {} does not match dataframe length {}' \
+                .format(len(column_mask), len(list(dataframe)))
+
         for i, col in enumerate(column_mask):
             if col.strip() == 'False':
                 column_indexes.append(i)
 
         updated_args.append(dataframe.drop(dataframe.columns[column_indexes], axis=1))
-
     return updated_args
+
+
+def remove_extra_entries(mask):
+    """Remove extra entries like '' or '\n' in the binary mask iff the length of mask does not match the corresponding
+    dataframe length
+    Args:
+        :param: mask (array): the binary mask as a list of values
+    Returns: mask (array): the binary mask with extraneous values removed from end of list
+    """
+    for i, col in reversed(list(enumerate(mask))):
+        stripped_col = col.strip()
+        if stripped_col == "True" or stripped_col == "False":
+            break
+        else:
+            del mask[i]
+    return mask
 
 
 class data_base(object):
@@ -68,12 +82,13 @@ class data_base(object):
             :self._X_test (Pandas Dataframe): Holds the X test data
             :self._Y_train (Pandas Dataframe): Holds the Y training data
             :self._Y_test (Pandas Dataframe): Holds the T testing data
-            :self._test_accesion_numbers (list): holds the accesion_numbers
+            :self._test_accession_numbers (list): holds the accession_numbers
             in the test set
         """
-    _ENRICHMENT_SPLIT_VALUE = 1 # enrichment threshold to classify as bound or unbound
+    _BOUND_FRACTION_SPLIT_VALUE = 0.51  # Bound Fraction threshold to classify as bound or unbound
+    _ENRICHMENT_SPLIT_VALUE = 1  # enrichment threshold to classify as bound or unbound
     categorical_data = ['Enzyme Commission Number', 'Particle Size', 'Particle Charge', 'Solvent Cysteine Concentration', 'Solvent NaCl Concentration']
-    columns_to_drop = ['Protein Length', 'Sequence', 'Enrichment', 'Accesion Number']
+    columns_to_drop = ['Protein Length', 'Sequence', 'Accession Number', 'Bound Fraction', 'Enrichment']
 
     def __init__(self):
         self._raw_data = None
@@ -84,67 +99,63 @@ class data_base(object):
         self._Y_train = None
         self._X_test = None
         self._Y_test = None
-        self._test_accesion_numbers = None
+        self._test_accession_numbers = None
         # If you want to use our model set this to your csv file using the assignment operator
         self._predict = None
 
     def clean_raw_data(self):
-        """ Cleans the raw data, drops useless columns, one hot encodes, and extracts
-        class information
+        """ Cleans the raw data, drops useless columns, one hot encodes, and extracts class information
 
         Args, Returns: None
         """
         self.clean_X_data = self.raw_data
-        # Categorize Interprot identifiers n hot encoding
-        self.clean_X_data = multi_label_encode(self.clean_X_data, 'Interprot')
         # one hot encode categorical data
         for category in self.categorical_data:
             self.clean_X_data = one_hot_encode(self.clean_X_data, category)
 
         # Grab some useful data before dropping from independent variables
-        self.Y_enrichment = self.clean_X_data['Enrichment']
-        accesion_numbers = self.clean_X_data['Accesion Number']
+        self._Y_enrichment = self.clean_X_data['Enrichment']
+        accession_numbers = self.clean_X_data['Accession Number']
+
         # drop useless columns
         for column in self.columns_to_drop:
-            self.clean_X_data = self.clean_X_data.drop(column, 1)
+            self.clean_X_data = self.clean_X_data.drop(column, axis=1)
 
         self.clean_X_data = fill_nan(self.clean_X_data, 'Protein Abundance')
-        self.clean_X_data = normalize_and_reshape(self.clean_X_data, accesion_numbers)
-        self._target = classify(self.Y_enrichment, self._ENRICHMENT_SPLIT_VALUE) #enrichment or nsaf
+        self.clean_X_data = normalize_and_reshape(self.clean_X_data, accession_numbers)
+        self._target = classify(self.Y_enrichment, self._ENRICHMENT_SPLIT_VALUE)  # enrichment or NSAF
 
         self.X_train = self.clean_X_data
         self.Y_train = self.target
 
     def clean_user_test_data(self, user_data):
-        """This method makes it easy for other people to make predictions
-        on their data.
-        called by assignment operator when users set db.predict = <path_to_csv>
+        """This method makes it easy for other people to make predictions on their data. Called by assignment operator
+        when users set db.predict = <path_to_csv>
 
         Args:
             :param user_data: users data they wish to predict
         Returns:
             None
         """
-        # Categorize Interprot identifiers n hot encoding
-        user_data = multi_label_encode(user_data, 'Interprot')
         # one hot encode categorical data
         for category in self.categorical_data:
             user_data = one_hot_encode(user_data, category)
 
-        # Grab some useful data before dropping from independant variables
-        self.Y_test = user_data['Enrichment']
-        accesion_numbers = user_data['Accesion Number']
+        # Grab some useful data before dropping from independent variables
+        self._Y_test = user_data['Enrichment']
+        accession_numbers = user_data['Accession Number']
 
         for column in self.columns_to_drop:
             user_data = user_data.drop(column, 1)
 
         user_data = fill_nan(user_data, 'Protein Abundance')
-        self.X_test = normalize_and_reshape(user_data, accesion_numbers)
-        self.Y_test = classify(self.Y_test, self._ENRICHMENT_SPLIT_VALUE) # enrichment or nsaf
+        self.X_test = normalize_and_reshape(user_data, accession_numbers)
+        self._Y_test = classify(self._Y_test, self._ENRICHMENT_SPLIT_VALUE)  # enrichment or NSAF
+
         # Get accession number
-        self.test_accesion_numbers = self.X_test['Accesion Number']
-        self.X_train = self.X_train.drop('Accesion Number', 1)
-        self.X_test = self.X_test.drop('Accesion Number', 1)
+        self.test_accession_numbers = self.X_test['Accession Number']
+        self.X_train = self.X_train.drop('Accession Number', 1)
+        self.X_test = self.X_test.drop('Accession Number', 1)
 
     def stratified_data_split(self, test_size=0.0):
         """Randomized stratified shuffle split that sets training and testing data
@@ -157,15 +168,14 @@ class data_base(object):
         assert 1.0 >= test_size >= 0.0, "test_size must be between 0 and 1"
         assert self.predict is None, "Remove stratified_data_split() if using your own data"
 
-        self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data, self.target, test_size = test_size, stratify=self.target, random_state=int((random.random()*100)))
-        self.test_accesion_numbers = self.X_test['Accesion Number']
-        self.X_train = self.X_train.drop('Accesion Number', 1)
-        self.X_test = self.X_test.drop('Accesion Number', 1)
+        self.X_train, self.X_test, self.Y_train, self.Y_test = model_selection.train_test_split(self.clean_X_data, self.target, test_size=test_size, stratify=self.target, random_state=int((random.random()*100)))
+        self.test_accession_numbers = self.X_test['Accession Number']
+        self.X_train = self.X_train.drop('Accession Number', 1)
+        self.X_test = self.X_test.drop('Accession Number', 1)
 
     @staticmethod
     def fetch_raw_data(enm_database):
-        """Fetches enm-protein data from a csv file
-        called by assignment operator for db.raw_data
+        """Fetches enm-protein data from a csv file called by assignment operator for db.raw_data
 
         Args:
             :param enm_database (str): path to csv database
@@ -236,11 +246,11 @@ class data_base(object):
             return self._target
 
     @property
-    def test_accesion_numbers(self):
-        if self._test_accesion_numbers is None:
-            raise ValueError("Initialize test_accesion_numbers by calling stratified_data_split()")
+    def test_accession_numbers(self):
+        if self._test_accession_numbers is None:
+            raise ValueError("Initialize test_accession_numbers by calling stratified_data_split()")
         else:
-            return self._test_accesion_numbers
+            return self._test_accession_numbers
 
     @property
     def predict(self):
@@ -250,7 +260,7 @@ class data_base(object):
     def X_train(self, path):
         if isinstance(path, str) and os.path.isfile(path):
             # If trying to set to value from excel
-            self._X_train = fetch_raw_data(path)
+            self._X_train = self.fetch_raw_data(path)
         else:
             # If trying to set to already imported array
             self._X_train = path
@@ -259,7 +269,7 @@ class data_base(object):
     def X_test(self, path):
         if isinstance(path, str) and os.path.isfile(path):
             # If trying to set to value from excel
-            self._X_test = fetch_raw_data(path)
+            self._X_test = self.fetch_raw_data(path)
         else:
             # If trying to set to already imported array
             self._X_test = path
@@ -268,7 +278,7 @@ class data_base(object):
     def Y_train(self, path):
         if isinstance(path, str) and os.path.isfile(path):
             # If trying to set to value from excel
-            self._Y_train = fetch_raw_data(path)
+            self._Y_train = self.fetch_raw_data(path)
         else:
             # If trying to set to already imported array
             self._Y_train = path
@@ -277,7 +287,7 @@ class data_base(object):
     def Y_test(self, path):
         if isinstance(path, str) and os.path.isfile(path):
             # If trying to set to value from excel
-            self._Y_test = fetch_raw_data(path)
+            self._Y_test = self.fetch_raw_data(path)
         else:
             # If trying to set to already imported array
             self._Y_test = path
@@ -293,7 +303,7 @@ class data_base(object):
     def clean_X_data(self, path):
         if isinstance(path, str) and os.path.isfile(path):
             # If trying to set to value from excel
-            self.clean_X_data = fetch_raw_data(path)
+            self.clean_X_data = self.fetch_raw_data(path)
         else:
             # If trying to set to already imported array
             self._clean_X_data = path
@@ -302,19 +312,19 @@ class data_base(object):
     def Y_enrichment(self, path):
         if isinstance(path, str) and os.path.isfile(path):
             # If trying to set to value from excel
-            self._Y_enrichment = fetch_raw_data(path)
+            self._Y_enrichment = self.fetch_raw_data(path)
         else:
             # If trying to set to already imported array
             self._Y_enrichment = path
 
-    @test_accesion_numbers.setter
-    def test_accesion_numbers(self, path):
+    @test_accession_numbers.setter
+    def test_accession_numbers(self, path):
         if isinstance(path, str) and os.path.isfile(path):
             # If trying to set to value from excel
-            self._Y_enrichment = fetch_raw_data(path)
+            self._Y_enrichment = self.fetch_raw_data(path)
         else:
             # If trying to set to already imported array
-            self._test_accesion_numbers = path
+            self._test_accession_numbers = path
 
     @predict.setter
     def predict(self, path):
@@ -346,7 +356,6 @@ def classify(data, cutoff):
     """
     This function classifies continous data.
     In our case we classify particles as bound or unbound
-
     Args:
         :param data (array): array of continous data
         :param cutoff (float): cutoff value for classification
@@ -484,7 +493,7 @@ def to_excel(classification_information):
             >classification_information = {
                 'all_predict_proba' : np.empty([TOTAL_TESTED_PROTEINS], dtype=float),
                 'all_true_results' : np.empty([TOTAL_TESTED_PROTEINS], dtype=int),
-                'all_accesion_numbers' : np.empty([TOTAL_TESTED_PROTEINS], dtype=str),
+                'all_accession_numbers' : np.empty([TOTAL_TESTED_PROTEINS], dtype=str),
                 'all_particle_information' : np.empty([2, TOTAL_TESTED_PROTEINS], dtype=int),
                 'all_solvent_information' : np.empty([3, TOTAL_TESTED_PROTEINS], dtype=int)
                 }
@@ -492,11 +501,11 @@ def to_excel(classification_information):
             None
         """
     with open('prediction_probability.csv', 'w') as file:
-        file.write('Protein Accesion Number, Particle Type, Solvent Conditions, True Bound Value, Predicted Bound Value, Predicted Probability of Being Bound, Properly Classified\n')
+        file.write('Protein Accession Number, Particle Type, Solvent Conditions, True Bound Value, Predicted Bound Value, Predicted Probability of Being Bound, Properly Classified\n')
 
         for pred, true_val, protein, particle_s, particle_c, cys, salt8, salt3, in zip(classification_information['all_predict_proba'],
                                                                                        classification_information['all_true_results'],
-                                                                                       classification_information['all_accesion_numbers'],
+                                                                                       classification_information['all_accession_numbers'],
                                                                                        classification_information['all_particle_information'][0],
                                                                                        classification_information['all_particle_information'][1],
                                                                                        classification_information['all_solvent_information'][0],
@@ -557,7 +566,7 @@ def hold_in_memory(classification_information, metrics, iterations, test_size):
     # Information is placed into numpy arrays as blocks
     classification_information['all_predict_proba'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[0]
     classification_information['all_true_results'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[1]
-    classification_information['all_accesion_numbers'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[2]
+    classification_information['all_accession_numbers'][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[2]
     classification_information['all_particle_information'][PARTICLE_CHARGE][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Particle Charge_1']
     classification_information['all_particle_information'][PARTICLE_SIZE][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Particle Size_10']
     classification_information['all_solvent_information'][SOLVENT_CYS][i*TEST_SIZE:(i*TEST_SIZE)+TEST_SIZE] = metrics[3]['Solvent Cysteine Concentration_0.1']
