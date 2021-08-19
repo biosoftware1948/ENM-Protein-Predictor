@@ -7,6 +7,7 @@ import os
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_selection import RFECV
 from sklearn.model_selection import GridSearchCV
+import visualization_utils
 # from sklearn.grid_search import GridSearchCV
 import sklearn
 import numpy as np
@@ -43,9 +44,7 @@ def optimize(model, X_train, Y_train):
         'n_estimators': [2500],
         'max_features': ['auto'],
         'max_depth': [None],
-        # 'min_samples_split': [5, 10, 15, 20, 50], #results from first run was 5
         'min_samples_split': [2, 3, 4, 5, 6, 7, 8, 9],
-        # 'min_samples_leaf': [1, 5, 15, 20, 50], # results from first run was 1
         'min_samples_leaf': [1],  # min_samples_leaf isn't necessary when using min_samples_split anyways
         'n_jobs': [-1],
     }
@@ -73,8 +72,22 @@ def recursive_feature_elimination(model, X_train, Y_train, mask_file):
 
     selector = RFECV(estimator=model, step=1, cv=10, scoring='f1', verbose=1)
     selector = selector.fit(X_train, Y_train)
+
+    # view RFECV accuracy scores
+    visualization_utils.visualize_rfecv(selector.grid_scores_)
+
+    # display optimal features
+    feature_index = selector.get_support(indices=True)
+    features = []
+
+    for index in feature_index:
+        features.append(X_train.columns[index])
+
     print("selector support: \n {} \n selector ranking: \n {}".format(selector.support_, selector.ranking_))
     print("Optimal number of features: \n {} \n Selector grid scores: \n {} \n".format(selector.n_features_, selector.grid_scores_))
+    print("Features Indexes: \n{}\n".format(feature_index))
+    print("Feature Names: \n{}".format(features))
+
     # write optimum binary mask to text file
     with open(mask_file, 'w') as f:
         for item in selector.support_:
