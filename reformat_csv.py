@@ -197,7 +197,8 @@ def clean_original_data():
     # replace 0 values for molecular weight
     df['molecular weight'] = df['molecular weight'].replace(to_replace=0.00, value=np.nan)
 
-    insert_accession_numbers(df)
+    # instead, return the df so it can be used for other operations
+    return df
 
 
 def insert_accession_numbers(inputted_data):
@@ -211,36 +212,28 @@ def insert_accession_numbers(inputted_data):
     sliced_input_data = inputted_data.xs('Bound Fraction, average NSAF value', level='values', axis=1)
     conditions_list = list(sliced_input_data.columns)
 
-    missing_accession_numbers = set()
-    incomplete_accession_numbers = set()
-    occurrences_of_accession_numbers = {}
+    # return individual DataFrames for newly inserted data, and then concat that with the original dataframe
+    # missing_a_num_df = insert_missing_accession_numbers(list(dataset['Accession Number']), conditions_list, dataset, inputted_data, sliced_input_data)
+    incomplete_a_num_df = insert_incomplete_accession_numbers(list(dataset['Accession Number']), conditions_list, dataset, inputted_data, sliced_input_data)
 
+    dataset = pd.concat(objs=[dataset, missing_a_num_df, incomplete_a_num_df], ignore_index=True)
+    # dataset.to_csv(path_or_buf='Input_Files/prototype_database.csv')
+    print(dataset)
+
+
+def insert_missing_accession_numbers(accession_numbers, conditions, dataset, data, sliced_data):
     # find accession numbers excluded from modeling dataset
-    access_nums = list(dataset['Accession Number'])
-    for access_num in list(sliced_input_data.index):
-        if access_num not in access_nums:
+    missing_accession_numbers = set()
+    for access_num in list(sliced_data.index):
+        if access_num not in accession_numbers:
             missing_accession_numbers.add(access_num)
-
-    # find list of incomplete accession numbers
-    for a_num in access_nums:
-        if a_num not in occurrences_of_accession_numbers:
-            occurrences_of_accession_numbers[a_num] = 1
-        else:
-            occurrences_of_accession_numbers[a_num] += 1
-
-    # filter for incomplete Accession Numbers
-    for key in occurrences_of_accession_numbers.keys():
-        if occurrences_of_accession_numbers[key] < 6:
-            incomplete_accession_numbers.add(key)
-
     print(f'Number of missing accession numbers: {len(missing_accession_numbers)}\n')
-    print(f'Number of incomplete accession numbers: {len(incomplete_accession_numbers)}\n')
 
     # insert the Bound Fraction values for the missing accession numbers
     missing_a_num_df = pd.DataFrame(columns=dataset.columns)
 
     # loop through all of the accession numbers in the inputted dataset
-    for condition in conditions_list:
+    for condition in conditions:
         # filter for particle properties
         split_label = condition.split()
         if split_label[0].find('(+)') != -1:
@@ -274,22 +267,127 @@ def insert_accession_numbers(inputted_data):
 
             # insert other relevant data
             missing_a_num_df.at[len(missing_a_num_df.index) - 1, 'Accession Number'] = a_num
-            missing_a_num_df.at[len(missing_a_num_df.index) - 1, 'Bound Fraction'] = sliced_input_data.at[a_num, condition]
-            missing_a_num_df.at[len(missing_a_num_df.index) - 1, 'Bound Fraction'] = sliced_input_data.at[a_num, condition]
-            missing_a_num_df.at[len(missing_a_num_df.index) - 1, 'Enzyme Commission Number'] = inputted_data.loc[a_num, 'Enzyme Commission number'].iat[0]
-            missing_a_num_df.at[len(missing_a_num_df.index) - 1, 'pI'] = inputted_data.loc[a_num, 'pI'].iat[0]
-            missing_a_num_df.at[len(missing_a_num_df.index) - 1, 'Protein Length'] = inputted_data.loc[a_num, 'length'].iat[0]
-            missing_a_num_df.at[len(missing_a_num_df.index) - 1, 'Protein Weight'] = inputted_data.loc[a_num, 'molecular weight'].iat[0]
+            missing_a_num_df.at[len(missing_a_num_df.index) - 1, 'Bound Fraction'] = sliced_data.at[a_num, condition]
+            missing_a_num_df.at[len(missing_a_num_df.index) - 1, 'Enzyme Commission Number'] = data.loc[a_num, 'Enzyme Commission number'].iat[0]
+            missing_a_num_df.at[len(missing_a_num_df.index) - 1, 'pI'] = data.loc[a_num, 'pI'].iat[0]
+            missing_a_num_df.at[len(missing_a_num_df.index) - 1, 'Protein Length'] = data.loc[a_num, 'length'].iat[0]
+            missing_a_num_df.at[len(missing_a_num_df.index) - 1, 'Protein Weight'] = data.loc[a_num, 'molecular weight'].iat[0]
+
+    return missing_a_num_df
 
 
-def find_bound_fraction_filler():
-    # needs to be developed to find the filler value for Bound Fraction since it's more representative of the actual state of the modeling dataset
-    pass
+def insert_incomplete_accession_numbers(accession_numbers, conditions, dataset, data, sliced_data):
+    incomplete_accession_numbers = set()
+    occurrences_of_accession_numbers = {}
+
+    # find list of incomplete accession numbers
+    for a_num in accession_numbers:
+        if a_num not in occurrences_of_accession_numbers:
+            occurrences_of_accession_numbers[a_num] = 1
+        else:
+            occurrences_of_accession_numbers[a_num] += 1
+
+    # filter for incomplete Accession Numbers
+    for key in occurrences_of_accession_numbers.keys():
+        if occurrences_of_accession_numbers[key] < 6:
+            incomplete_accession_numbers.add(key)
+
+    print(f'Number of incomplete accession numbers: {len(incomplete_accession_numbers)}\n')
+    incomplete_a_num_df = pd.DataFrame(columns=dataset.columns)
+
+    dataset.set_index(keys='Accession Number', inplace=True)
+
+    base_string = 'AgNP, 10 mM NaPi, pH 7.4'
+    condition = ''
+
+    # filter for missing conditions, and insert those if possible (Might be NaN and 0 values?)
+    accession_numbers = set()
+    for idx in dataset.index:
+        # simply pass if the Accession Number has already been accessed
+        if idx in accession_numbers:
+            pass
+        else:
+            # track the accession numbers using a set
+            accession_numbers.add(idx)
+
+            # slice the dataset by Accession Number
+            accession_number = idx
+            sliced_df = dataset.loc[idx]
+
+            # if there is only one instance of the Accession Number (returns a pandas Series)
+            if len(sliced_df.shape) < 2:
+                pass
+            else:
+                # drop the identical accession numbers in order to use default integer indexing
+                sliced_df.reset_index(inplace=True, drop=True)
+
+                # if an Accession Number occurs less than 6 times, check for specific missing conditions
+                if sliced_df.shape[0] < 6:
+                    # iterate through the rows and construct conditions
+                    for row in sliced_df.index:
+                        # condition = base_string
+                        pass
+                    pass
+                pass
+    # INSERT CODE ABOVE TO FILTER BY INCOMPLETE CONDITIONS #
+
+    sys.exit(0)
+    return incomplete_a_num_df
+
+
+def find_bound_fraction_filler(original):
+    # how to go about this:
+    sliced_input_data = original.xs('Bound Fraction, average NSAF value', level='values', axis=1)
+    print(original)
+    print(sliced_input_data)
+    dataset = pd.read_csv('Input_Files/database.csv')
+    freq = dataset['Bound Fraction'].value_counts()
+
+    # check out the mode and frequency of Bound Fraction values
+    # print(freq)
+    # print(dataset['Bound Fraction'].mode())
+
+    base_string = 'AgNP, 10 mM NaPi, pH 7.4'
+    condition = ''
+    possible_filler_bf_values = {}
+    for row in dataset.index:
+        condition = base_string
+        accession_number = dataset.at[row, 'Accession Number']
+
+        # filter out specific solvent conditions in order to construct condition
+        if dataset.at[row, 'Solvent NaCl Concentration'] != 0.0:
+            condition += ' + ' + str(dataset.at[row, 'Solvent NaCl Concentration']) + ' mM NaCl'
+        elif dataset.at[row, 'Solvent Cysteine Concentration'] != 0.0:
+            condition += ' + ' + str(dataset.at[row, 'Solvent Cysteine Concentration']) + ' mM cys'
+
+        if dataset.at[row, 'Particle Size'] == 10:
+            condition = '10 nm ' + condition
+        else:
+            condition = '100 nm ' + condition
+
+        if dataset.at[row, 'Particle Charge'] == 1:
+            condition = '(+) ' + condition
+        else:
+            condition = '(-) ' + condition
+
+        # filter for any mismatches and record the Accession Number and associated Bound Fraction value from the
+        # modeling dataset
+        if dataset.at[row, 'Bound Fraction'] != sliced_input_data.at[accession_number, condition]:
+            print(f"\nThe accession number with mismatching values: {accession_number}")
+            print(f"database.csv Bound Fraction value: {dataset.at[row, 'Bound Fraction']}")
+            print(f"filter.csv Bound Fraction value: {sliced_input_data.at[accession_number, condition]}")
+            print(f"The condition at which the value is mismatched: {condition}\n")
+            if accession_number not in possible_filler_bf_values.keys():
+                possible_filler_bf_values[accession_number] = dataset.at[row, 'Bound Fraction']
+
+    # get the most occurring mismatched value
+    print(possible_filler_bf_values)
+    print(max(possible_filler_bf_values.values()))
 
 
 if __name__ == '__main__':
-    info = pd.read_csv('Input_Files/information.csv', header=[0])
+    original_data = clean_original_data()
+    # find_bound_fraction_filler(original_data)
+    insert_accession_numbers(original_data)
 
-    # pd.set_option('display.max_columns', None, 'display.max_rows', None)
-    clean_original_data()
 
