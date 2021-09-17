@@ -39,6 +39,19 @@ or grid search.</p>
 <h3>mask.txt</h3>
 <p> a boolean mask produced by recursive feature elimination and cross validation.
 This mask is applied to the database to produce an optimal amount of features </p>
+<h3>InputData.csv</h3>
+<p>This is the original Excel file that contains all of the data obtained, and is used to 
+create the modeling datasets that are used.
+</p>
+<h3>Protein_Abundance_Data.csv</h3>
+<p> This is the file containing the Protein Abundance data for all Accession Numbers. Currently being used
+to try to insert new Protein Abundance data for the prototype database.csv file 
+</p>
+<h3>prototype_database.csv</h3>
+<p>
+This is the prototype data warehouse, which houses nearly all information from the original Excel file. Used to 
+not only increase the size of the dataset but to try to introduce a more evenly distributed target label.
+</p>
 <h2> Output Files </h2>
 <h3> final.json </h3>
 <p>non stratified results from running the model 50x</p>
