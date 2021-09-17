@@ -1,14 +1,11 @@
 """Developed by: Joseph Pham 2021
 This module is solely used to perform simple reformatting operations on CSV files for further use in machine learning
-It will continue to be updated as needs arise.
-Returns a saved copy of the newly reformatted CSV file, it does not alter the original CSV file.
+It will continue to be updated as needs arise. Current operations include inserting data by Accession Number, removing
+undesired columns, and finding and inserting specific types of data to create a new modeling dataset.
 """
 
-import csv
-import pandas as pd
 import numpy as np
-import os
-import sys
+import pandas as pd
 
 
 def remove_columns(df, cols):
@@ -17,7 +14,7 @@ def remove_columns(df, cols):
          :param: df (dataframe): pandas dataframe containing a database
          :param: cols (list): list containing column names to remove
     Returns:
-        df (dataframe): removed columns from dataframe
+        pandas DataFrame df: removed columns from dataframe
      """
     try:
         df.drop(cols, inplace=True, axis=1)
@@ -140,8 +137,6 @@ def clean_original_data():
                                    'Gene Ontology, Cellular Component',
                                    'Gene Ontology, Molecular Function'], axis=1, inplace=True)
 
-    # print(non_conditions_df.columns)
-
     # rename the columns for ease of readability
     non_conditions_df.rename(columns={
         'accession number': 'Accession Number', 'calc. pI': 'pI', '# metal bonds': '# of Metal Bonds',
@@ -204,7 +199,6 @@ def clean_original_data():
     for col in cols_to_delete_chars:
         remove_strings(df, col, '%')
 
-    # pd.set_option('display.max_columns', None, 'display.max_rows', None)
     # replace the '---'/0.00E+00 values with 0 in the DataFrame for Bound Fraction values
     df.replace(to_replace=['---', '0.00E+00'], value=0, inplace=True)
 
@@ -213,6 +207,7 @@ def clean_original_data():
     df.set_index(keys=['Sequence', 'Accession Number'], inplace=True)
     df = df.apply(pd.to_numeric, downcast='integer', errors='coerce')
     df.reset_index(level=['Sequence'], inplace=True)
+
     return df
 
 
@@ -225,11 +220,13 @@ def rename(col):
 
 
 def insert_accession_numbers(inputted_data):
-    """ Insert relevant data by accession number into the modeling dataset
+    """ Insert relevant data by accession number into the modeling dataset, sorting either by totally excluded Accession
+    Number or missing subgroups of an Accession Number. Creates the DataFrame of all the data obtained, and stores it as
+    a prototype CSV data warehouse
 
     Args:
         pandas DataFrame inputted_data: the reformatted input DataFrame to be used for inserting data into the modeling dataset
-    Returns: At the moment, None
+    Returns: None
     """
     dataset = pd.read_csv('Input_Files/database.csv')
 
@@ -243,26 +240,40 @@ def insert_accession_numbers(inputted_data):
                        '(-) 10 nm AgNP, 10 mM NaPi, pH 7.4 + 3.0 mM NaCl']
 
     # return individual DataFrames for newly inserted data, and then concat that with the original dataframe
-    # missing_a_num_df = insert_missing_accession_numbers(list(dataset['Accession Number']), conditions_list, dataset, inputted_data)
+    missing_a_num_df = insert_missing_accession_numbers(list(dataset['Accession Number']), conditions_list, dataset, inputted_data)
     incomplete_a_num_df = insert_incomplete_accession_numbers(list(dataset['Accession Number']), conditions_list, dataset, inputted_data)
-    sys.exit(0)
+
     dataset.reset_index(inplace=True)
+
+    print(missing_a_num_df)
+    print(incomplete_a_num_df)
 
     # join the DataFrames together to create a comprehensive dataset and save it as a CSV file
     dataset = pd.concat(objs=[dataset, missing_a_num_df, incomplete_a_num_df], ignore_index=True)
-    # dataset.to_csv(path_or_buf='Input_Files/prototype_database.csv', index=False)
+
+    # set numerical dtypes of dataframe while preserving nonnumerical data
+    non_numeric_df = dataset[['Accession Number', 'Sequence']]
+    dataset.drop(labels=['Accession Number', 'Sequence'], axis=1, inplace=True)
+    dataset = dataset.apply(pd.to_numeric, downcast='integer', errors='coerce')
+    dataset = pd.concat(objs=[non_numeric_df, dataset], axis=1)
+
+    print(dataset)
+
+    dataset.to_csv(path_or_buf='Input_Files/prototype_database.csv', index=False)
 
 
 def insert_missing_accession_numbers(accession_numbers, conditions, dataset, data):
-    """
-    Args:
-        list accession_numbers:
-        list conditions:
-        pandas DataFrame dataset:
-        pandas DataFrame data:
-        pandas DataFrame sliced_data:
-    Returns:
+    """ Because all 6 groups of data are missing for these Accession Number, insert all of the associated data with that
+     Accession Number
 
+    Args:
+        list accession_numbers: the accession numbers which are wholly missing from the dataset
+        list conditions: all the conditions by which to insert data for each missing Accession Number
+        pandas DataFrame dataset: the original dataset by which to insert data into
+        pandas DataFrame data: dataframe containing the reformatted original Excel file to insert information from
+    Returns:
+        pandas DataFrame missing_a_num_df: a new DataFrame containing all of the 6 groups of data for each missing
+        Accession Number
     """
     # find accession numbers excluded from modeling dataset
     missing_accession_numbers = set()
@@ -331,9 +342,10 @@ def insert_incomplete_accession_numbers(accession_numbers, conditions, dataset, 
         list accession_numbers: list of accession numbers in the dataset
         list conditions: list of protein particle conditions
         pandas DataFrame dataset: dataframe containing the modeling dataset to insert information into
-        pandas DataFrame data: dataframe containing the original Excel file to insert information from
-        pandas DataFrame sliced_data: dataframe from slicing the original Excel file, which isolates the Bound Fraction information
-    Returns: At the moment, None
+        pandas DataFrame data: dataframe containing the reformatted original Excel file to insert information from
+    Returns:
+        pandas DataFrame incomplete_a_num_df: the newly created DataFrame storing the once missing information for
+        incomplete Accession Numbers
     """
     incomplete_accession_numbers = set()
     occurrences_of_accession_numbers = {}
@@ -374,10 +386,28 @@ def insert_incomplete_accession_numbers(accession_numbers, conditions, dataset, 
 
             # if there is only one instance of the Accession Number (returns a pandas Series)
             if len(sliced_df.shape) < 2:
-                # INSERT CODE TO DEAL WITH SIMPLE SERIES #
-                # construct the solvent conditions based on the accessible values within the Series
-                # print(sliced_df['Solvent Cysteine Concentration'])
-                pass
+                # treat the Series differently
+                condition = base_string
+                # add in particle size
+                if sliced_df['Particle Size'] == 10:
+                    condition = '10 nm ' + condition
+                else:
+                    condition = '100 nm ' + condition
+
+                # add in particle charge
+                if sliced_df['Particle Charge'] == 1:
+                    condition = '(+) ' + condition
+                else:
+                    condition = '(-) ' + condition
+
+                # add in solvent conditions, and if both concentrations are 0 keep iterating
+                if sliced_df['Solvent NaCl Concentration'] != 0:
+                    condition += ' + ' + str(sliced_df['Solvent NaCl Concentration']) + ' mM NaCl'
+                elif sliced_df['Solvent Cysteine Concentration'] != 0:
+                    condition += ' + ' + str(sliced_df['Solvent Cysteine Concentration']) + ' mM cys'
+
+                accessed_conditions.append(condition)
+                missing_conditions = set(conditions).symmetric_difference(set(accessed_conditions))
             else:
                 # drop the identical accession numbers in order to use default integer indexing
                 sliced_df.reset_index(inplace=True, drop=True)
@@ -401,7 +431,7 @@ def insert_incomplete_accession_numbers(accession_numbers, conditions, dataset, 
                         else:
                             condition = '(-) ' + condition
 
-                        # add in the solvent conditions
+                        # add in the solvent conditions, and if both concentrations are 0 keep iterating
                         if sliced_df.at[row, 'Solvent NaCl Concentration'] != 0:
                             condition += ' + ' + str(sliced_df.at[row, 'Solvent NaCl Concentration']) + ' mM NaCl'
                         elif sliced_df.at[row, 'Solvent Cysteine Concentration'] != 0:
@@ -413,57 +443,65 @@ def insert_incomplete_accession_numbers(accession_numbers, conditions, dataset, 
                     # find missing conditions and insert data according to missing conditions
                     missing_conditions = set(conditions).symmetric_difference(set(accessed_conditions))
 
-                    # loop through missing conditions
-                    for condition in missing_conditions:
-                        # filter for particle properties
-                        split_label = condition.split()
-                        if split_label[0].find('(+)') != -1:
-                            particle_charge = 1
-                        else:
-                            particle_charge = 0
+            # loop through missing conditions
+            for condition in missing_conditions:
+                # filter for particle properties
+                split_label = condition.split()
+                if split_label[0].find('(+)') != -1:
+                    particle_charge = 1
+                else:
+                    particle_charge = 0
 
-                        if split_label[1] == '10':
-                            particle_size = 10
-                        else:
-                            particle_size = 100
+                if split_label[1] == '10':
+                    particle_size = 10
+                else:
+                    particle_size = 100
 
-                        # filter for solvent conditions
-                        if len(split_label) <= 9:
-                            cys_concentration = nacl_concentration = 0
-                        else:
-                            # check for cysteine or sodium chloride concentration
-                            if split_label[12] == 'NaCl':
-                                nacl_concentration = split_label[10]
-                                cys_concentration = 0
-                            else:
-                                cys_concentration = split_label[10]
-                                nacl_concentration = 0
-                        last_row_index = len(incomplete_a_num_df.index)
+                # filter for solvent conditions
+                if len(split_label) <= 9:
+                    cys_concentration = nacl_concentration = 0
+                else:
+                    # check for cysteine or sodium chloride concentration
+                    if split_label[12] == 'NaCl':
+                        nacl_concentration = split_label[10]
+                        cys_concentration = 0
+                    else:
+                        cys_concentration = split_label[10]
+                        nacl_concentration = 0
 
-                        # insert data based on missing conditions
-                        incomplete_a_num_df.at[last_row_index, 'Particle Charge'] = particle_charge
-                        incomplete_a_num_df.at[last_row_index, 'Particle Size'] = particle_size
+                last_row_index = len(incomplete_a_num_df.index)
 
-                        # inserting solvent + concentration
-                        incomplete_a_num_df.at[last_row_index, 'Solvent NaCl Concentration'] = nacl_concentration
-                        incomplete_a_num_df.at[last_row_index, 'Solvent Cysteine Concentration'] = cys_concentration
-                        incomplete_a_num_df.at[last_row_index, 'Accession Number'] = accession_number
+                # insert data based on missing conditions
+                incomplete_a_num_df.at[last_row_index, 'Particle Charge'] = particle_charge
+                incomplete_a_num_df.at[last_row_index, 'Particle Size'] = particle_size
 
-                        for feature in dataset.columns:
-                            # ignore certain features if they've been inserted or are simply unneeded
-                            if feature == 'Particle Charge' or feature == 'Particle Size' or \
-                                    feature == 'Solvent NaCl Concentration' or feature == 'Solvent Cysteine Concentration' or \
-                                    feature == 'Accession Number' or feature == 'Enrichment':
-                                pass
-                            # requires passing in a special condition string to access Bound Fraction in the InputData
-                            elif feature == 'Bound Fraction':
-                                incomplete_a_num_df.at[last_row_index, feature] = data.at[accession_number, condition]
-                            else:
-                                incomplete_a_num_df.at[last_row_index, feature] = data.at[accession_number, feature]
+                # inserting solvent + concentration
+                incomplete_a_num_df.at[last_row_index, 'Solvent NaCl Concentration'] = nacl_concentration
+                incomplete_a_num_df.at[last_row_index, 'Solvent Cysteine Concentration'] = cys_concentration
+                incomplete_a_num_df.at[last_row_index, 'Accession Number'] = accession_number
+
+                for feature in dataset.columns:
+                    # ignore certain features if they've been inserted or are simply unneeded
+                    if feature == 'Particle Charge' or feature == 'Particle Size' or \
+                            feature == 'Solvent NaCl Concentration' or feature == 'Solvent Cysteine Concentration' or \
+                            feature == 'Accession Number' or feature == 'Enrichment':
+                        pass
+                    # requires passing in a special condition string to access Bound Fraction in the InputData
+                    elif feature == 'Bound Fraction':
+                        incomplete_a_num_df.at[last_row_index, feature] = data.at[accession_number, condition]
+                    else:
+                        incomplete_a_num_df.at[last_row_index, feature] = data.at[accession_number, feature]
     return incomplete_a_num_df
 
 
 def find_bound_fraction_filler(original):
+    """ Attempt to find the filler Bound Fraction value used to originally substitute for 0 values
+
+    Args:
+        pandas DataFrame original: the DataFrame representation of the original data warehouse (CSV file)
+    Returns:
+        None
+    """
     # how to go about this:
     sliced_input_data = original.xs('Bound Fraction, average NSAF value', level='values', axis=1)
     print(original)
@@ -514,6 +552,16 @@ def find_bound_fraction_filler(original):
 
 
 def insert_protein_abundance_data(dataset, pa_data):
+    """ Using the 'Protein_Abundance_data.csv' file, insert new Protein Abundance information for the newly inserted
+    data in the 'prototype_database.csv' file. New Protein Abundance data will be inserted if at least 2 values are
+    identified out of a group of 3 tests, otherwise the associated data will be pd.nan.
+
+    Args:
+        pandas DataFrame dataset: the proto
+        pandas DataFrame pa_data: the Protein Abundance data to insert
+
+    """
+    # NOTE: actually accept runs with at least 2 measured values, otherwise drop the row
     spectral_count_columns = ['C1', 'C2', 'C3']
     summed_ratios = 0
     missing_keys = set()
@@ -553,12 +601,19 @@ def insert_protein_abundance_data(dataset, pa_data):
 
 
 if __name__ == '__main__':
+    # used to clean, reformat, and store the new database from the original Excel file
     original_data = clean_original_data()
-    original_data = insert_protein_abundance_data(original_data, pd.read_csv('Input_Files/Protein_Abundance_Data.csv'))
-    print(original_data)
-    # print(original_data.shape)
-    # print(original_data.loc['P00359'])
+
+    # NOTE: hard to find original filler value
     # find_bound_fraction_filler(original_data)
+
+    # NOTE: no need to insert accession numbers since we've already performed this operation
     insert_accession_numbers(original_data)
+
+    # currently trying to input protein abundance data
+    # NOTE: do not use original_data as it's actually the original Excel file which is not desired
+    # use prototype_database.csv
+    original_data = insert_protein_abundance_data(original_data, pd.read_csv('Input_Files/Protein_Abundance_Data.csv'))
+
 
 
