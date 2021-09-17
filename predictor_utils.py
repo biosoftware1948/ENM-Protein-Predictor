@@ -39,6 +39,7 @@ def optimize(model, X_train, Y_train):
     Returns:
         None
     """
+    print("Optimizing model hyperparameters")
     # add whatever your heart desires to param grid, keep in mind its an incredibly inefficient algorithm
     param_grid = {
         'n_estimators': [2500],
