@@ -93,7 +93,6 @@ class data_base(object):
     def __init__(self):
         self._raw_data = None
         self._clean_X_data = None
-        self._Y_enrichment = None
         self._target = None
         self._X_train = None
         self._Y_train = None
@@ -114,7 +113,7 @@ class data_base(object):
             self.clean_X_data = one_hot_encode(self.clean_X_data, category)
 
         # Grab some useful data before dropping from independent variables
-        self._Y_enrichment = self.clean_X_data['Enrichment']
+        bound_fraction = self.clean_X_data['Bound Fraction']
         accession_numbers = self.clean_X_data['Accession Number']
 
         # drop useless columns
@@ -122,8 +121,8 @@ class data_base(object):
             self.clean_X_data = self.clean_X_data.drop(column, axis=1)
 
         self.clean_X_data = fill_nan(self.clean_X_data, 'Protein Abundance')
+        self._target = classify(bound_fraction)
         self.clean_X_data = normalize_and_reshape(self.clean_X_data, accession_numbers)
-        self._target = classify(self.Y_enrichment, self._ENRICHMENT_SPLIT_VALUE)  # enrichment or NSAF
 
         self.X_train = self.clean_X_data
         self.Y_train = self.target
@@ -142,15 +141,15 @@ class data_base(object):
             user_data = one_hot_encode(user_data, category)
 
         # Grab some useful data before dropping from independent variables
-        self._Y_test = user_data['Enrichment']
+        bound_fraction = user_data['Bound Fraction']
         accession_numbers = user_data['Accession Number']
 
         for column in self.columns_to_drop:
             user_data = user_data.drop(column, 1)
 
         user_data = fill_nan(user_data, 'Protein Abundance')
+        self._Y_test = classify(bound_fraction)
         self.X_test = normalize_and_reshape(user_data, accession_numbers)
-        self._Y_test = classify(self._Y_test, self._ENRICHMENT_SPLIT_VALUE)  # enrichment or NSAF
 
         # Get accession number
         self.test_accession_numbers = self.X_test['Accession Number']
@@ -352,7 +351,7 @@ def normalize_and_reshape(data, labels):
     return data
 
 
-def classify(data, cutoff):
+def classify(data):
     """
     This function classifies continous data.
     In our case we classify particles as bound or unbound
@@ -371,7 +370,7 @@ def classify(data, cutoff):
     classified_data = np.empty((len(data)))
 
     for i, val in enumerate(data):
-        if float(val) >= float(cutoff):
+        if float(val) > float(0):
             classified_data[i] = 1
         else:
             classified_data[i] = 0
